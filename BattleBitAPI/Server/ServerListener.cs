@@ -301,6 +301,8 @@ namespace BattleBitAPI.Server
             {
                 try
                 {
+                    Console.WriteLine(e.Message);
+
                     var networkStream = client.GetStream();
                     using (var pck = BattleBitAPI.Common.Serialization.Stream.Get())
                     {

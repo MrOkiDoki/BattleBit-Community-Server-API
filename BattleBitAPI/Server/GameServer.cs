@@ -83,6 +83,9 @@ namespace BattleBitAPI.Server
             {
                 0,0,0,0,
             };
+
+            this.mLastPackageReceived = Extentions.TickCount;
+            this.mLastPackageSent = Extentions.TickCount;
         }
 
         // ---- Tick ----
@@ -127,6 +130,12 @@ namespace BattleBitAPI.Server
 
                             if (this.mReadPackageSize > Const.MaxNetworkPackageSize)
                                 throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
+
+                            //Is this keep alive package?
+                            if (this.mReadPackageSize == 0)
+                            {
+                                Console.WriteLine("Keep alive was received.");
+                            }
 
                             //Reset the stream.
                             this.mReadStream.Reset();
@@ -182,6 +191,8 @@ namespace BattleBitAPI.Server
                     networkStream.Write(this.mKeepAliveBuffer, 0, 4);
 
                     this.mLastPackageSent = Extentions.TickCount;
+
+                    Console.WriteLine("Keep alive was sent.");
                 }
             }
             catch (Exception e)
