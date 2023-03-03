@@ -2,8 +2,12 @@
 {
     public enum NetworkCommuncation : byte
     {
-        Hail = 0,
+        //Do not use
+        None = 0,
 
+        Hail = 1,
+        Accepted = 2,
+        Denied = 3,
 
     }
 }

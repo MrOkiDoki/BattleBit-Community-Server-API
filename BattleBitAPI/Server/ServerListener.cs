@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using BattleBitAPI.Common.Enums;
 using BattleBitAPI.Common.Extentions;
+using BattleBitAPI.Common.Serialization;
 using BattleBitAPI.Networking;
 using CommunityServerAPI.BattleBitAPI;
 
@@ -290,18 +291,30 @@ namespace BattleBitAPI.Server
                         }
 
                         server = new GameServer(client, ip, gamePort, isPasswordProtected, serverName, gameMode, gamemap, size, dayNight, currentPlayers, queuePlayers, maxPlayers, loadingScreenText, serverRulesText);
+
+                        //Send accepted notification.
+                        networkStream.WriteByte((byte)NetworkCommuncation.Accepted);
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
-                client.SafeClose();
-                return;
-            }
+                try
+                {
+                    var networkStream = client.GetStream();
+                    using (var pck = BattleBitAPI.Common.Serialization.Stream.Get())
+                    {
+                        pck.Write((byte)NetworkCommuncation.Denied);
+                        pck.Write(e.Message);
 
-            //Did server connected successfully?
-            if (server == null)
-            {
+                        //Send denied notification.
+                        networkStream.Write(pck.Buffer, 0, pck.WritePosition);
+                    }
+                    await networkStream.FlushAsync();
+                }
+                catch { }
+
+
                 client.SafeClose();
                 return;
             }

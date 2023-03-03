@@ -16,8 +16,8 @@ namespace BattleBitAPI.Server
         /// Is game server connected to our server?
         /// </summary>
         public bool IsConnected { get; private set; }
-        public IPAddress IP { get; private set; }
-        public int Port { get; private set; }
+        public IPAddress GameIP { get; private set; }
+        public int GamePort { get; private set; }
         public bool IsPasswordProtected { get; private set; }
         public string ServerName { get; private set; }
         public string Gamemode { get; private set; }
@@ -49,8 +49,8 @@ namespace BattleBitAPI.Server
             this.IsConnected = true;
             this.Socket = socket;
 
-            this.IP = iP;
-            this.Port = port;
+            this.GameIP = iP;
+            this.GamePort = port;
             this.IsPasswordProtected = isPasswordProtected;
             this.ServerName = serverName;
             this.Gamemode = gamemode;

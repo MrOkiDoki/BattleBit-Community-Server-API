@@ -16,7 +16,7 @@
         /// </summary>
         public const int NetworkKeepAlive = 15 * 1000;//15 seconds
         /// <summary>
-        /// How long server will wait client to send their hail package. In miliseconds.
+        /// How long server/client will wait other side to send their hail/initial package. In miliseconds.
         /// </summary>
         public const int HailConnectTimeout = 2 * 1000;
 
