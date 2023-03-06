@@ -1,70 +1,79 @@
-using System;
-using System.Collections.Generic;
+namespace BattleBitAPI.Common.Threading;
 
-namespace BattleBitAPI.Common.Threading
+public class ThreadSafe<T>
 {
-    public class ThreadSafe<T>
-    {
-        private System.Threading.ReaderWriterLockSlim mLock;
-        public T Value;
+	private ReaderWriterLockSlim mLock;
+	public T Value;
 
-        public ThreadSafe(T value)
-        {
-            this.Value = value;
-            this.mLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.SupportsRecursion);
-        }
+	public ThreadSafe(T value)
+	{
+		Value = value;
+		mLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+	}
 
-        public SafeWriteHandle GetWriteHandle() => new SafeWriteHandle(this.mLock);
-        public SafeReadHandle GetReadHandle() => new SafeReadHandle(this.mLock);
+	public SafeWriteHandle GetWriteHandle()
+	{
+		return new(mLock);
+	}
 
-        /// <summary>
-        /// Swaps current value with new value and returns old one.
-        /// </summary>
-        /// <param name="newValue"></param>
-        /// <returns>Old value</returns>
-        public T SwapValue(T newValue)
-        {
-            using (new SafeWriteHandle(this.mLock))
-            {
-                var oldValue = this.Value;
-                this.Value = newValue;
-                return oldValue;
-            }
-        }
-    }
-    public class SafeWriteHandle : System.IDisposable
-    {
-        private System.Threading.ReaderWriterLockSlim mLock;
-        private bool mDisposed;
-        public SafeWriteHandle(System.Threading.ReaderWriterLockSlim mLock)
-        {
-            this.mLock = mLock;
-            mLock.EnterWriteLock();
-        }
-        public void Dispose()
-        {
-            if (mDisposed)
-                return;
-            mDisposed = true;
-            mLock.ExitWriteLock();
-        }
-    }
-    public class SafeReadHandle : System.IDisposable
-    {
-        private System.Threading.ReaderWriterLockSlim mLock;
-        private bool mDisposed;
-        public SafeReadHandle(System.Threading.ReaderWriterLockSlim mLock)
-        {
-            this.mLock = mLock;
-            mLock.EnterReadLock();
-        }
-        public void Dispose()
-        {
-            if (mDisposed)
-                return;
-            mDisposed = true;
+	public SafeReadHandle GetReadHandle()
+	{
+		return new(mLock);
+	}
 
-            mLock.ExitReadLock();
-        }
-    }
+    /// <summary>
+    ///     Swaps current value with new value and returns old one.
+    /// </summary>
+    /// <param name="newValue"></param>
+    /// <returns>Old value</returns>
+    public T SwapValue(T newValue)
+	{
+		using (new SafeWriteHandle(mLock))
+		{
+			var oldValue = Value;
+			Value = newValue;
+			return oldValue;
+		}
+	}
+}
+
+public class SafeWriteHandle : IDisposable
+{
+	private bool mDisposed;
+	private ReaderWriterLockSlim mLock;
+
+	public SafeWriteHandle(ReaderWriterLockSlim mLock)
+	{
+		this.mLock = mLock;
+		mLock.EnterWriteLock();
+	}
+
+	public void Dispose()
+	{
+		if (mDisposed)
+			return;
+		mDisposed = true;
+		mLock.ExitWriteLock();
+	}
+}
+
+public class SafeReadHandle : IDisposable
+{
+	private bool mDisposed;
+	private ReaderWriterLockSlim mLock;
+
+	public SafeReadHandle(ReaderWriterLockSlim mLock)
+	{
+		this.mLock = mLock;
+		mLock.EnterReadLock();
+	}
+
+	public void Dispose()
+	{
+		if (mDisposed)
+			return;
+		mDisposed = true;
+
+		mLock.ExitReadLock();
+	}
 }

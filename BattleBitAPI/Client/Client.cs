@@ -1,358 +1,391 @@
-﻿using BattleBitAPI.Common.Enums;
-using BattleBitAPI.Common.Extentions;
-using BattleBitAPI.Common.Serialization;
-using BattleBitAPI.Networking;
-using CommunityServerAPI.BattleBitAPI;
-using System;
+﻿#region
+
 using System.Diagnostics;
-using System.Net;
 using System.Net.Sockets;
 
-namespace BattleBitAPI.Client
+using BattleBitAPI.Common.Enums;
+using BattleBitAPI.Networking;
+
+using CommunityServerAPI.BattleBitAPI;
+using CommunityServerAPI.BattleBitAPI.Common.Extentions;
+
+using Stream = BattleBitAPI.Common.Serialization.Stream;
+
+#endregion
+
+namespace BattleBitAPI.Client;
+
+// This class was created mainly for Unity Engine, for this reason, Task async was not implemented.
+public class Client
 {
-    // This class was created mainly for Unity Engine, for this reason, Task async was not implemented.
-    public class Client
-    {
-        // ---- Public Variables ---- 
-        public bool IsConnected { get; private set; }
-        public int GamePort { get; set; } = 30000;
-        public bool IsPasswordProtected { get; set; } = false;
-        public string ServerName { get; set; } = "";
-        public string Gamemode { get; set; } = "";
-        public string Map { get; set; } = "";
-        public MapSize MapSize { get; set; } = MapSize._16vs16;
-        public MapDayNight DayNight { get; set; } = MapDayNight.Day;
-        public int CurrentPlayers { get; set; } = 0;
-        public int InQueuePlayers { get; set; } = 0;
-        public int MaxPlayers { get; set; } = 16;
-        public string LoadingScreenText { get; set; } = "";
-        public string ServerRulesText { get; set; } = "";
+	private string mDestination;
+	private bool mIsConnectingFlag;
+	private byte[] mKeepAliveBuffer;
+	private long mLastPackageReceived;
+	private long mLastPackageSent;
+	private int mPort;
+	private uint mReadPackageSize;
+	private Stream mReadStream;
 
-        // ---- Private Variables ---- 
-        private TcpClient mSocket;
-        private string mDestination;
-        private int mPort;
-        private byte[] mKeepAliveBuffer;
-        private Common.Serialization.Stream mWriteStream;
-        private Common.Serialization.Stream mReadStream;
-        private uint mReadPackageSize;
-        private long mLastPackageReceived;
-        private long mLastPackageSent;
-        private bool mIsConnectingFlag;
+	// ---- Private Variables ----
+	private TcpClient mSocket;
+	private Stream mWriteStream;
 
-        // ---- Construction ---- 
-        public Client(string destination, int port)
-        {
-            this.mDestination = destination;
-            this.mPort = port;
+	// ---- Construction ----
+	public Client(string destination, int port)
+	{
+		mDestination = destination;
+		mPort = port;
 
-            this.mWriteStream = new Common.Serialization.Stream()
-            {
-                Buffer = new byte[Const.MaxNetworkPackageSize],
-                InPool = false,
-                ReadPosition = 0,
-                WritePosition = 0,
-            };
-            this.mReadStream = new Common.Serialization.Stream()
-            {
-                Buffer = new byte[Const.MaxNetworkPackageSize],
-                InPool = false,
-                ReadPosition = 0,
-                WritePosition = 0,
-            };
-            this.mKeepAliveBuffer = new byte[4]
-            {
-                0,0,0,0,
-            };
+		mWriteStream = new Stream()
+		{
+			Buffer = new byte[Const.MaxNetworkPackageSize],
+			InPool = false,
+			ReadPosition = 0,
+			WritePosition = 0
+		};
+		mReadStream = new Stream()
+		{
+			Buffer = new byte[Const.MaxNetworkPackageSize],
+			InPool = false,
+			ReadPosition = 0,
+			WritePosition = 0
+		};
+		mKeepAliveBuffer = new byte[4]
+		{
+			0, 0, 0, 0
+		};
 
-            this.mLastPackageReceived = Extentions.TickCount;
-            this.mLastPackageSent = Extentions.TickCount;
-        }
+		mLastPackageReceived = Extensions.TickCount;
+		mLastPackageSent = Extensions.TickCount;
+	}
 
-        // ---- Main Tick ---- 
-        public void Tick()
-        {
-            //Are we connecting?
-            if (mIsConnectingFlag)
-                return;
+	// ---- Public Variables ----
+	public bool IsConnected { get; private set; }
 
-            //Have we connected?
-            if (!this.IsConnected)
-            {
-                //Attempt to connect to server async.
-                this.mIsConnectingFlag = true;
+	public int GamePort { get; set; } = 30000;
 
-                //Dispose old client if exist.
-                if (this.mSocket != null)
-                {
-                    try { this.mSocket.Close(); } catch { }
-                    try { this.mSocket.Dispose(); } catch { }
-                    this.mSocket = null;
-                }
+	public bool IsPasswordProtected { get; set; } = false;
 
-                //Create new client
-                this.mSocket = new TcpClient();
-                this.mSocket.SendBufferSize = Const.MaxNetworkPackageSize;
-                this.mSocket.ReceiveBufferSize = Const.MaxNetworkPackageSize;
+	public string ServerName { get; set; } = "";
 
-                //Attempt to connect.
-                try
-                {
-                    var state = mSocket.BeginConnect(mDestination, mPort, (x) =>
-                    {
+	public string Gamemode { get; set; } = "";
 
-                        try
-                        {
-                            //Did we connect?
-                            mSocket.EndConnect(x);
+	public string Map { get; set; } = "";
 
-                            var networkStream = mSocket.GetStream();
+	public MapSize MapSize { get; set; } = MapSize._16vs16;
 
-                            //Prepare our hail package and send it.
-                            using (var hail = BattleBitAPI.Common.Serialization.Stream.Get())
-                            {
-                                hail.Write((byte)NetworkCommuncation.Hail);
-                                hail.Write((ushort)this.GamePort);
-                                hail.Write(this.IsPasswordProtected);
-                                hail.Write(this.ServerName);
-                                hail.Write(this.Gamemode);
-                                hail.Write(this.Map);
-                                hail.Write((byte)this.MapSize);
-                                hail.Write((byte)this.DayNight);
-                                hail.Write((byte)this.CurrentPlayers);
-                                hail.Write((byte)this.InQueuePlayers);
-                                hail.Write((byte)this.MaxPlayers);
-                                hail.Write(this.LoadingScreenText);
-                                hail.Write(this.ServerRulesText);
+	public MapDayNight DayNight { get; set; } = MapDayNight.Day;
 
-                                //Send our hail package.
-                                networkStream.Write(hail.Buffer, 0, hail.WritePosition);
-                                networkStream.Flush();
-                            }
+	public int CurrentPlayers { get; set; } = 0;
 
-                            //Sadly can not use Task Async here, Unity isn't great with tasks.
-                            var watch = Stopwatch.StartNew();
+	public int InQueuePlayers { get; set; } = 0;
 
-                            //Read the first byte.
-                            NetworkCommuncation response = NetworkCommuncation.None;
-                            while (watch.ElapsedMilliseconds < Const.HailConnectTimeout)
-                            {
-                                if (mSocket.Available > 0)
-                                {
-                                    var data = networkStream.ReadByte();
-                                    if (data >= 0)
-                                    {
-                                        response = (NetworkCommuncation)data;
-                                        break;
-                                    }
-                                }
-                                Thread.Sleep(1);
-                            }
+	public int MaxPlayers { get; set; } = 16;
 
-                            //Were we accepted.
-                            if (response == NetworkCommuncation.Accepted)
-                            {
-                                //We are accepted.
-                                this.mIsConnectingFlag = false;
-                                this.IsConnected = true;
+	public string LoadingScreenText { get; set; } = "";
 
-                                mOnConnectedToServer();
-                            }
-                            else
-                            {
-                                //Did we at least got a response?
-                                if (response == NetworkCommuncation.None)
-                                    throw new Exception("Server did not respond to your connect request.");
+	public string ServerRulesText { get; set; } = "";
 
-                                //Try to read our deny reason.
-                                if (response == NetworkCommuncation.Denied && mSocket.Available > 0)
-                                {
-                                    string errorString = null;
+	// ---- Main Tick ----
+	public void Tick()
+	{
+		//Are we connecting?
+		if (mIsConnectingFlag)
+			return;
 
-                                    using (var readStream = BattleBitAPI.Common.Serialization.Stream.Get())
-                                    {
-                                        readStream.WritePosition = networkStream.Read(readStream.Buffer, 0, mSocket.Available);
-                                        if (!readStream.TryReadString(out errorString))
-                                            errorString = null;
-                                    }
+		//Have we connected?
+		if (!IsConnected)
+		{
+			//Attempt to connect to server async.
+			mIsConnectingFlag = true;
 
-                                    if (errorString != null)
-                                        throw new Exception(errorString);
-                                }
+			//Dispose old client if exist.
+			if (mSocket != null)
+			{
+				try
+				{
+					mSocket.Close();
+				}
+				catch
+				{
+				}
+				try
+				{
+					mSocket.Dispose();
+				}
+				catch
+				{
+				}
+				mSocket = null;
+			}
 
-                                throw new Exception("Server denied our connect request with an unknown reason.");
-                            }
-                        }
-                        catch (Exception e)
-                        {
+			//Create new client
+			mSocket = new TcpClient();
+			mSocket.SendBufferSize = Const.MaxNetworkPackageSize;
+			mSocket.ReceiveBufferSize = Const.MaxNetworkPackageSize;
 
-                            this.mIsConnectingFlag = false;
+			//Attempt to connect.
+			try
+			{
+				var state = mSocket.BeginConnect(mDestination, mPort, (x) =>
+				{
+					try
+					{
+						//Did we connect?
+						mSocket.EndConnect(x);
 
-                            mLogError("Unable to connect to API server: " + e.Message);
-                            return;
-                        }
+						var networkStream = mSocket.GetStream();
 
-                    }, null);
-                }
-                catch
-                {
-                    this.mIsConnectingFlag = false;
-                }
+						//Prepare our hail package and send it.
+						using (var hail = Stream.Get())
+						{
+							hail.Write((byte)NetworkCommuncation.Hail);
+							hail.Write((ushort)GamePort);
+							hail.Write(IsPasswordProtected);
+							hail.Write(ServerName);
+							hail.Write(Gamemode);
+							hail.Write(Map);
+							hail.Write((byte)MapSize);
+							hail.Write((byte)DayNight);
+							hail.Write((byte)CurrentPlayers);
+							hail.Write((byte)InQueuePlayers);
+							hail.Write((byte)MaxPlayers);
+							hail.Write(LoadingScreenText);
+							hail.Write(ServerRulesText);
 
-                //We haven't connected yet.
-                return;
-            }
+							//Send our hail package.
+							networkStream.Write(hail.Buffer, 0, hail.WritePosition);
+							networkStream.Flush();
+						}
 
-            //We are connected at this point.
+						//Sadly can not use Task Async here, Unity isn't great with tasks.
+						var watch = Stopwatch.StartNew();
 
-            try
-            {
-                //Are we still connected on socket level?
-                if (!mSocket.Connected)
-                {
-                    mClose("Connection was terminated.");
-                    return;
-                }
+						//Read the first byte.
+						var response = NetworkCommuncation.None;
+						while (watch.ElapsedMilliseconds < Const.HailConnectTimeout)
+						{
+							if (mSocket.Available > 0)
+							{
+								var data = networkStream.ReadByte();
+								if (data >= 0)
+								{
+									response = (NetworkCommuncation)data;
+									break;
+								}
+							}
+							Thread.Sleep(1);
+						}
 
-                var networkStream = mSocket.GetStream();
+						//Were we accepted.
+						if (response == NetworkCommuncation.Accepted)
+						{
+							//We are accepted.
+							mIsConnectingFlag = false;
+							IsConnected = true;
 
-                //Read network packages.
-                while (mSocket.Available > 0)
-                {
-                    this.mLastPackageReceived = Extentions.TickCount;
+							mOnConnectedToServer();
+						}
+						else
+						{
+							//Did we at least got a response?
+							if (response == NetworkCommuncation.None)
+								throw new Exception("Server did not respond to your connect request.");
 
-                    //Do we know the package size?
-                    if (this.mReadPackageSize == 0)
-                    {
-                        const int sizeToRead = 4;
-                        int leftSizeToRead = sizeToRead - this.mReadStream.WritePosition;
+							//Try to read our deny reason.
+							if (response == NetworkCommuncation.Denied && mSocket.Available > 0)
+							{
+								string errorString = null;
 
-                        int read = networkStream.Read(this.mReadStream.Buffer, this.mReadStream.WritePosition, leftSizeToRead);
-                        if (read <= 0)
-                            throw new Exception("Connection was terminated.");
+								using (var readStream = Stream.Get())
+								{
+									readStream.WritePosition = networkStream.Read(readStream.Buffer, 0, mSocket.Available);
+									if (!readStream.TryReadString(out errorString))
+										errorString = null;
+								}
 
-                        this.mReadStream.WritePosition += read;
+								if (errorString != null)
+									throw new Exception(errorString);
+							}
 
-                        //Did we receive the package?
-                        if (this.mReadStream.WritePosition >= 4)
-                        {
-                            //Read the package size
-                            this.mReadPackageSize = this.mReadStream.ReadUInt32();
+							throw new Exception("Server denied our connect request with an unknown reason.");
+						}
+					}
+					catch (Exception e)
+					{
+						mIsConnectingFlag = false;
 
-                            if (this.mReadPackageSize > Const.MaxNetworkPackageSize)
-                                throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
+						mLogError("Unable to connect to API server: " + e.Message);
+						return;
+					}
+				}, null);
+			}
+			catch
+			{
+				mIsConnectingFlag = false;
+			}
 
-                            //Is this keep alive package?
-                            if (this.mReadPackageSize == 0)
-                            {
-                                Console.WriteLine("Keep alive was received.");
-                            }
+			//We haven't connected yet.
+			return;
+		}
 
-                            //Reset the stream.
-                            this.mReadStream.Reset();
-                        }
-                    }
-                    else
-                    {
-                        int sizeToRead = (int)mReadPackageSize;
-                        int leftSizeToRead = sizeToRead - this.mReadStream.WritePosition;
+		//We are connected at this point.
 
-                        int read = networkStream.Read(this.mReadStream.Buffer, this.mReadStream.WritePosition, leftSizeToRead);
-                        if (read <= 0)
-                            throw new Exception("Connection was terminated.");
+		try
+		{
+			//Are we still connected on socket level?
+			if (!mSocket.Connected)
+			{
+				mClose("Connection was terminated.");
+				return;
+			}
 
-                        this.mReadStream.WritePosition += read;
+			var networkStream = mSocket.GetStream();
 
-                        //Do we have the package?
-                        if (this.mReadStream.WritePosition >= mReadPackageSize)
-                        {
-                            this.mReadPackageSize = 0;
+			//Read network packages.
+			while (mSocket.Available > 0)
+			{
+				mLastPackageReceived = Extensions.TickCount;
 
-                            mExecutePackage(this.mReadStream);
+				//Do we know the package size?
+				if (mReadPackageSize == 0)
+				{
+					const int sizeToRead = 4;
+					var leftSizeToRead = sizeToRead - mReadStream.WritePosition;
 
-                            //Reset
-                            this.mReadStream.Reset();
-                        }
-                    }
-                }
+					var read = networkStream.Read(mReadStream.Buffer, mReadStream.WritePosition, leftSizeToRead);
+					if (read <= 0)
+						throw new Exception("Connection was terminated.");
 
-                //Send the network packages.
-                if (this.mWriteStream.WritePosition > 0)
-                {
-                    lock (this.mWriteStream)
-                    {
-                        if (this.mWriteStream.WritePosition > 0)
-                        {
-                            networkStream.Write(this.mWriteStream.Buffer, 0, this.mWriteStream.WritePosition);
-                            this.mWriteStream.WritePosition = 0;
+					mReadStream.WritePosition += read;
 
-                            this.mLastPackageSent = Extentions.TickCount;
-                        }
-                    }
-                }
+					//Did we receive the package?
+					if (mReadStream.WritePosition >= 4)
+					{
+						//Read the package size
+						mReadPackageSize = mReadStream.ReadUInt32();
 
-                //Are we timed out?
-                if ((Extentions.TickCount - this.mLastPackageReceived) > Const.NetworkTimeout)
-                    throw new Exception("server timedout.");
+						if (mReadPackageSize > Const.MaxNetworkPackageSize)
+							throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
 
-                //Send keep alive if needed
-                if ((Extentions.TickCount - this.mLastPackageSent) > Const.NetworkKeepAlive)
-                {
-                    //Send keep alive.
-                    networkStream.Write(this.mKeepAliveBuffer, 0, 4);
+						//Is this keep alive package?
+						if (mReadPackageSize == 0)
+							Console.WriteLine("Keep alive was received.");
 
-                    this.mLastPackageSent = Extentions.TickCount;
+						//Reset the stream.
+						mReadStream.Reset();
+					}
+				}
+				else
+				{
+					var sizeToRead = (int)mReadPackageSize;
+					var leftSizeToRead = sizeToRead - mReadStream.WritePosition;
 
-                    Console.WriteLine("Keep alive was sent.");
-                }
-            }
-            catch (Exception e)
-            {
-                mClose(e.Message);
-            }
-        }
+					var read = networkStream.Read(mReadStream.Buffer, mReadStream.WritePosition, leftSizeToRead);
+					if (read <= 0)
+						throw new Exception("Connection was terminated.");
 
-        // ---- Internal ----
-        private void mExecutePackage(Common.Serialization.Stream stream)
-        {
-            var communcation = (NetworkCommuncation)stream.ReadInt8();
-            switch (communcation)
-            {
+					mReadStream.WritePosition += read;
 
-            }
-        }
+					//Do we have the package?
+					if (mReadStream.WritePosition >= mReadPackageSize)
+					{
+						mReadPackageSize = 0;
 
-        // ---- Callbacks ---- 
-        private void mOnConnectedToServer()
-        {
+						mExecutePackage(mReadStream);
 
-        }
-        private void mOnDisconnectedFromServer(string reason)
-        {
-        }
+						//Reset
+						mReadStream.Reset();
+					}
+				}
+			}
+
+			//Send the network packages.
+			if (mWriteStream.WritePosition > 0)
+				lock (mWriteStream)
+				{
+					if (mWriteStream.WritePosition > 0)
+					{
+						networkStream.Write(mWriteStream.Buffer, 0, mWriteStream.WritePosition);
+						mWriteStream.WritePosition = 0;
+
+						mLastPackageSent = Extensions.TickCount;
+					}
+				}
+
+			//Are we timed out?
+			if (Extensions.TickCount - mLastPackageReceived > Const.NetworkTimeout)
+				throw new Exception("server timedout.");
+
+			//Send keep alive if needed
+			if (Extensions.TickCount - mLastPackageSent > Const.NetworkKeepAlive)
+			{
+				//Send keep alive.
+				networkStream.Write(mKeepAliveBuffer, 0, 4);
+
+				mLastPackageSent = Extensions.TickCount;
+
+				Console.WriteLine("Keep alive was sent.");
+			}
+		}
+		catch (Exception e)
+		{
+			mClose(e.Message);
+		}
+	}
+
+	// ---- Internal ----
+	private void mExecutePackage(Stream stream)
+	{
+		var communcation = (NetworkCommuncation)stream.ReadInt8();
+		switch (communcation)
+		{
+		}
+	}
+
+	// ---- Callbacks ----
+	private void mOnConnectedToServer()
+	{
+	}
+
+	private void mOnDisconnectedFromServer(string reason)
+	{
+	}
 
 
-        // ---- Private ---- 
-        private void mLogError(string str)
-        {
+	// ---- Private ----
+	private void mLogError(string str)
+	{
+	}
 
-        }
-        private void mClose(string reason)
-        {
-            if (this.IsConnected)
-            {
-                this.IsConnected = false;
+	private void mClose(string reason)
+	{
+		if (IsConnected)
+		{
+			IsConnected = false;
 
-                //Dispose old client if exist.
-                if (this.mSocket != null)
-                {
-                    try { this.mSocket.Close(); } catch { }
-                    try { this.mSocket.Dispose(); } catch { }
-                    this.mSocket = null;
-                }
+			//Dispose old client if exist.
+			if (mSocket != null)
+			{
+				try
+				{
+					mSocket.Close();
+				}
+				catch
+				{
+				}
+				try
+				{
+					mSocket.Dispose();
+				}
+				catch
+				{
+				}
+				mSocket = null;
+			}
 
-                mOnDisconnectedFromServer(reason);
-            }
-        }
-    }
+			mOnDisconnectedFromServer(reason);
+		}
+	}
 }
