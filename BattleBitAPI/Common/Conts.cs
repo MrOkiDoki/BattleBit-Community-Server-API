@@ -3,24 +3,24 @@
 public static class Const
 {
 	// ---- Networking ---- 
-    /// <summary>
-    ///     Maximum data size for a single package. 4MB is default.
-    /// </summary>
-    public const int MaxNetworkPackageSize = 1024 * 1024 * 4; //4mb
-    /// <summary>
-    ///     How long should server/client wait until connection is determined as timed out when no packages
-    ///     is being sent for long time.
-    /// </summary>
-    public const int NetworkTimeout = 60 * 1000; //60 seconds
-    /// <summary>
-    ///     How frequently client/server will send keep alive to each other when no message is being sent
-    ///     to each other for a while.
-    /// </summary>
-    public const int NetworkKeepAlive = 15 * 1000; //15 seconds
-    /// <summary>
-    ///     How long server/client will wait other side to send their hail/initial package. In miliseconds.
-    /// </summary>
-    public const int HailConnectTimeout = 2 * 1000;
+	/// <summary>
+	///     Maximum data size for a single package. 4MB is default.
+	/// </summary>
+	public const int MaxNetworkPackageSize = 1024 * 1024 * 4; //4mb
+	/// <summary>
+	///     How long should server/client wait until connection is determined as timed out when no packages
+	///     is being sent for long time.
+	/// </summary>
+	public const int NetworkTimeout = 60 * 1000; //60 seconds
+	/// <summary>
+	///     How frequently client/server will send keep alive to each other when no message is being sent
+	///     to each other for a while.
+	/// </summary>
+	public const int NetworkKeepAlive = 15 * 1000; //15 seconds
+	/// <summary>
+	///     How long server/client will wait other side to send their hail/initial package. In miliseconds.
+	/// </summary>
+	public const int HailConnectTimeout = 2 * 1000;
 
 	// ---- Server Fields ---- 
 	public const int MinServerNameLength = 5;

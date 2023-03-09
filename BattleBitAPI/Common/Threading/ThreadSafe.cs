@@ -13,20 +13,20 @@ public class ThreadSafe<T>
 
 	public SafeWriteHandle GetWriteHandle()
 	{
-		return new(mLock);
+		return new SafeWriteHandle(mLock);
 	}
 
 	public SafeReadHandle GetReadHandle()
 	{
-		return new(mLock);
+		return new SafeReadHandle(mLock);
 	}
 
-    /// <summary>
-    ///     Swaps current value with new value and returns old one.
-    /// </summary>
-    /// <param name="newValue"></param>
-    /// <returns>Old value</returns>
-    public T SwapValue(T newValue)
+	/// <summary>
+	///     Swaps current value with new value and returns old one.
+	/// </summary>
+	/// <param name="newValue"></param>
+	/// <returns>Old value</returns>
+	public T SwapValue(T newValue)
 	{
 		using (new SafeWriteHandle(mLock))
 		{
