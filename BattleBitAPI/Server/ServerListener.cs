@@ -1,359 +1,224 @@
-﻿using System.Net;
+﻿#region
+
+using System.Net;
 using System.Net.Sockets;
+
 using BattleBitAPI.Common.Enums;
-using BattleBitAPI.Common.Extentions;
-using BattleBitAPI.Common.Serialization;
 using BattleBitAPI.Networking;
+
 using CommunityServerAPI.BattleBitAPI;
+using CommunityServerAPI.BattleBitAPI.Common.Extentions;
+using CommunityServerAPI.BattleBitAPI.Packets;
 
-namespace BattleBitAPI.Server
+#endregion
+
+namespace BattleBitAPI.Server;
+
+public class ServerListener : IDisposable
 {
-    public class ServerListener : IDisposable
-    {
-        // --- Public --- 
-        public bool IsListening { get; private set; }
-        public bool IsDisposed { get; private set; }
-        public int ListeningPort { get; private set; }
+	// --- Private ---
+	private TcpListener mSocket;
 
-        // --- Events --- 
-        /// <summary>
-        /// Fired when an attempt made to connect to the server.
-        /// Connection will be allowed if function returns true, otherwise will be blocked.
-        /// Default, any connection attempt will be accepted.
-        /// </summary>
-        public Func<IPAddress, Task<bool>> OnGameServerConnecting { get; set; }
+	// --- Construction ---
+	public ServerListener()
+	{
+	}
 
-        /// <summary>
-        /// Fired when a game server connects.
-        /// </summary>
-        public Func<GameServer, Task> OnGameServerConnected { get; set; }
-        /// <summary>
-        /// Fired when a game server disconnects. Check (server.TerminationReason) to see the reason.
-        /// </summary>
-        public Func<GameServer, Task> OnGameServerDisconnected { get; set; }
+	// --- Public ---
+	public bool IsListening { get; private set; }
 
-        // --- Private --- 
-        private TcpListener mSocket;
+	public bool IsDisposed { get; private set; }
 
-        // --- Construction --- 
-        public ServerListener() { }
+	public int ListeningPort { get; private set; }
 
-        // --- Starting ---
-        public void Start(IPAddress bindIP, int port)
-        {
-            if (this.IsDisposed)
-                throw new ObjectDisposedException(this.GetType().FullName);
-            if (bindIP == null)
-                throw new ArgumentNullException(nameof(bindIP));
-            if (IsListening)
-                throw new Exception("Server is already listening.");
+	// --- Events ---
+	/// <summary>
+	///     Fired when an attempt made to connect to the server.
+	///     Connection will be allowed if function returns true, otherwise will be blocked.
+	///     Default, any connection attempt will be accepted.
+	/// </summary>
+	public Func<IPAddress, Task<bool>> OnGameServerConnecting { get; set; }
 
-            this.mSocket = new TcpListener(bindIP, port);
-            this.mSocket.Start();
+	/// <summary>
+	///     Fired when a game server connects.
+	/// </summary>
+	public Func<GameServer, Task> OnGameServerConnected { get; set; }
 
-            this.ListeningPort = port;
-            this.IsListening = true;
+	/// <summary>
+	///     Fired when a game server disconnects. Check (server.TerminationReason) to see the reason.
+	/// </summary>
+	public Func<GameServer, Task> OnGameServerDisconnected { get; set; }
 
-            mMainLoop();
-        }
-        public void Start(int port)
-        {
-            Start(IPAddress.Loopback, port);
-        }
+	// --- Disposing ---
+	public void Dispose()
+	{
+		//Already disposed?
+		if (IsDisposed)
+			return;
+		IsDisposed = true;
 
-        // --- Stopping ---
-        public void Stop()
-        {
-            if (this.IsDisposed)
-                throw new ObjectDisposedException(this.GetType().FullName);
-            if (!IsListening)
-                throw new Exception("Already not running.");
+		if (IsListening)
+			Stop();
+	}
 
-            try
-            {
-                mSocket.Stop();
-            }
-            catch { }
+	// --- Starting ---
+	public void Start(IPAddress bindIP, int port)
+	{
+		if (IsDisposed)
+			throw new ObjectDisposedException(GetType().FullName);
+		if (bindIP == null)
+			throw new ArgumentNullException(nameof(bindIP));
+		if (IsListening)
+			throw new Exception("Server is already listening.");
 
-            this.mSocket = null;
-            this.ListeningPort = 0;
-            this.IsListening = true;
-        }
+		mSocket = new TcpListener(bindIP, port);
+		mSocket.Start();
 
-        // --- Main Loop ---
-        private async Task mMainLoop()
-        {
-            while (IsListening)
-            {
-                var client = await mSocket.AcceptTcpClientAsync();
-                mInternalOnClientConnecting(client);
-            }
-        }
-        private async Task mInternalOnClientConnecting(TcpClient client)
-        {
-            var ip = (client.Client.RemoteEndPoint as IPEndPoint).Address;
+		ListeningPort = port;
+		IsListening = true;
 
-            bool allow = true;
-            if (OnGameServerConnecting != null)
-                allow = await OnGameServerConnecting(ip);
+		mMainLoop();
+	}
 
-            if (!allow)
-            {
-                //Connection is not allowed from this IP.
-                client.SafeClose();
-                return;
-            }
+	public void Start(int port)
+	{
+		Start(IPAddress.Loopback, port);
+	}
 
-            GameServer server = null;
-            try
-            {
-                using (CancellationTokenSource source = new CancellationTokenSource(Const.HailConnectTimeout))
-                {
-                    using (var readStream = Common.Serialization.Stream.Get())
-                    {
-                        var networkStream = client.GetStream();
+	// --- Stopping ---
+	public void Stop()
+	{
+		if (IsDisposed)
+			throw new ObjectDisposedException(GetType().FullName);
+		if (!IsListening)
+			throw new Exception("Already not running.");
 
-                        //Read package type
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the package type");
-                            NetworkCommuncation type = (NetworkCommuncation)readStream.ReadInt8();
-                            if (type != NetworkCommuncation.Hail)
-                                throw new Exception("Incoming package wasn't hail.");
-                        }
+		try
+		{
+			mSocket.Stop();
+		}
+		catch
+		{
+		}
 
-                        //Read port
-                        int gamePort;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the Port");
-                            gamePort = readStream.ReadUInt16();
-                        }
+		mSocket = null;
+		ListeningPort = 0;
+		IsListening = true;
+	}
 
-                        //Read is Port protected
-                        bool isPasswordProtected;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the IsPasswordProtected");
-                            isPasswordProtected = readStream.ReadBool();
-                        }
+	// --- Main Loop ---
+	private async Task mMainLoop()
+	{
+		while (IsListening)
+		{
+			var client = await mSocket.AcceptTcpClientAsync();
+			mInternalOnClientConnecting(client);
+		}
+	}
 
-                        //Read the server name
-                        string serverName;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the ServerName Size");
+	private async Task mInternalOnClientConnecting(TcpClient client)
+	{
+		var ip = (client.Client.RemoteEndPoint as IPEndPoint).Address;
 
-                            int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinServerNameLength || stringSize > Const.MaxServerNameLength)
-                                throw new Exception("Invalid server name size");
+		var allow = true;
+		if (OnGameServerConnecting != null)
+			allow = await OnGameServerConnecting(ip);
 
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, stringSize, source.Token))
-                                throw new Exception("Unable to read the ServerName");
+		if (!allow)
+		{
+			//Connection is not allowed from this IP.
+			client.SafeClose();
+			return;
+		}
 
-                            serverName = readStream.ReadString(stringSize);
-                        }
+		GameServer server = null;
+		try
+		{
+			using (var source = new CancellationTokenSource(Const.HailConnectTimeout))
+			{
+				using (var readStream = new MemoryStream())
+				{
+					var networkStream = client.GetStream();
 
-                        //Read the gamemode
-                        string gameMode;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the gamemode Size");
+					using (var reader = new BinaryReader(readStream))
+					{
+						readStream.Seek(0, SeekOrigin.Begin);
+						if (!await networkStream.TryRead(readStream, 1, source.Token))
+							throw new Exception("Unable to read the package type");
+						var type = (NetworkCommuncation)reader.ReadByte();
+						if (type != NetworkCommuncation.Hail)
+							throw new Exception("Incoming package wasn't hail.");
 
-                            int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinGamemodeNameLength || stringSize > Const.MaxGamemodeNameLength)
-                                throw new Exception("Invalid gamemode size");
+						var packet = new HailPacket();
+						if (!packet.TryRead(reader, CancellationToken.None))
+							throw new Exception("Failed to deserialize packet");
 
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, stringSize, source.Token))
-                                throw new Exception("Unable to read the gamemode");
+						server = new GameServer(client,
+							ip,
+							packet.GamePort,
+							packet.IsPasswordProtected,
+							packet.ServerName,
+							packet.Gamemode,
+							packet.Map,
+							packet.MapSize,
+							packet.DayNight,
+							packet.CurrentPlayers,
+							packet.InQueuePlayers,
+							packet.MaxPlayers,
+							packet.LoadingScreenText,
+							packet.ServerRulesText);
 
-                            gameMode = readStream.ReadString(stringSize);
-                        }
+						//Send accepted notification.
+						networkStream.WriteByte((byte)NetworkCommuncation.Accepted);
+					}
 
-                        //Read the gamemap
-                        string gamemap;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the map size");
+				}
+			}
+		}
+		catch (Exception e)
+		{
+			try
+			{
+				Console.WriteLine(e.Message);
 
-                            int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinMapNameLength || stringSize > Const.MaxMapNameLength)
-                                throw new Exception("Invalid map size");
-
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, stringSize, source.Token))
-                                throw new Exception("Unable to read the map");
-
-                            gamemap = readStream.ReadString(stringSize);
-                        }
-
-                        //Read the mapSize
-                        MapSize size;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the MapSize");
-                            size = (MapSize)readStream.ReadInt8();
-                        }
-
-                        //Read the day night
-                        MapDayNight dayNight;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the MapDayNight");
-                            dayNight = (MapDayNight)readStream.ReadInt8();
-                        }
-
-                        //Current Players
-                        int currentPlayers;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the Current Players");
-                            currentPlayers = readStream.ReadInt8();
-                        }
-
-                        //Queue Players
-                        int queuePlayers;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the Queue Players");
-                            queuePlayers = readStream.ReadInt8();
-                        }
-
-                        //Max Players
-                        int maxPlayers;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 1, source.Token))
-                                throw new Exception("Unable to read the Max Players");
-                            maxPlayers = readStream.ReadInt8();
-                        }
-
-                        //Read Loading Screen Text
-                        string loadingScreenText;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the Loading Screen Text Size");
-
-                            int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinLoadingScreenTextLength || stringSize > Const.MaxLoadingScreenTextLength)
-                                throw new Exception("Invalid server Loading Screen Text Size");
-
-                            if (stringSize > 0)
-                            {
-                                readStream.Reset();
-                                if (!await networkStream.TryRead(readStream, stringSize, source.Token))
-                                    throw new Exception("Unable to read the Loading Screen Text");
-
-                                loadingScreenText = readStream.ReadString(stringSize);
-                            }
-                            else
-                            {
-                                loadingScreenText = string.Empty;
-                            }
-                        }
-
-                        //Read Server Rules Text
-                        string serverRulesText;
-                        {
-                            readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the Server Rules Text Size");
-
-                            int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinServerRulesTextLength || stringSize > Const.MaxServerRulesTextLength)
-                                throw new Exception("Invalid server Server Rules Text Size");
-
-                            if (stringSize > 0)
-                            {
-                                readStream.Reset();
-                                if (!await networkStream.TryRead(readStream, stringSize, source.Token))
-                                    throw new Exception("Unable to read the Server Rules Text");
-
-                                serverRulesText = readStream.ReadString(stringSize);
-                            }
-                            else
-                            {
-                                serverRulesText = string.Empty;
-                            }
-                        }
-
-                        server = new GameServer(client, ip, gamePort, isPasswordProtected, serverName, gameMode, gamemap, size, dayNight, currentPlayers, queuePlayers, maxPlayers, loadingScreenText, serverRulesText);
-
-                        //Send accepted notification.
-                        networkStream.WriteByte((byte)NetworkCommuncation.Accepted);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                try
-                {
-                    Console.WriteLine(e.Message);
-
-                    var networkStream = client.GetStream();
-                    using (var pck = BattleBitAPI.Common.Serialization.Stream.Get())
-                    {
-                        pck.Write((byte)NetworkCommuncation.Denied);
-                        pck.Write(e.Message);
-
-                        //Send denied notification.
-                        networkStream.Write(pck.Buffer, 0, pck.WritePosition);
-                    }
-                    await networkStream.FlushAsync();
-                }
-                catch { }
+				var networkStream = client.GetStream();
+				using (var pck = new BinaryWriter(networkStream))
+				{
+					pck.Write((byte)NetworkCommuncation.Denied);
+					pck.Write(e.Message);
+				}
+				await networkStream.FlushAsync();
+			}
+			catch
+			{
+			}
 
 
-                client.SafeClose();
-                return;
-            }
+			client.SafeClose();
+			return;
+		}
 
-            //Call the callback.
-            if (OnGameServerConnected != null)
-                await OnGameServerConnected.Invoke(server);
+		//Call the callback.
+		if (OnGameServerConnected != null)
+			await OnGameServerConnected.Invoke(server);
 
-            //Set the buffer sizes.
-            client.ReceiveBufferSize = Const.MaxNetworkPackageSize;
-            client.SendBufferSize = Const.MaxNetworkPackageSize;
+		//Set the buffer sizes.
+		client.ReceiveBufferSize = Const.MaxNetworkPackageSize;
+		client.SendBufferSize = Const.MaxNetworkPackageSize;
 
-            //Join to main server loop.
-            await mHandleGameServer(server);
-        }
-        private async Task mHandleGameServer(GameServer server)
-        {
-            while (server.IsConnected)
-            {
-                await server.Tick();
-                await Task.Delay(1);
-            }
+		//Join to main server loop.
+		await mHandleGameServer(server);
+	}
 
-            if (OnGameServerDisconnected != null)
-                await OnGameServerDisconnected.Invoke(server);
-        }
+	private async Task mHandleGameServer(GameServer server)
+	{
+		while (server.IsConnected)
+		{
+			await server.Tick();
+			await Task.Delay(1);
+		}
 
-        // --- Disposing --- 
-        public void Dispose()
-        {
-            //Already disposed?
-            if (this.IsDisposed)
-                return;
-            this.IsDisposed = true;
-
-            if (IsListening)
-                Stop();
-        }
-    }
+		if (OnGameServerDisconnected != null)
+			await OnGameServerDisconnected.Invoke(server);
+	}
 }

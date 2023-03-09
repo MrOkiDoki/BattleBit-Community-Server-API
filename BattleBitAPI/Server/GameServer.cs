@@ -1,226 +1,230 @@
-﻿using System.Net;
+﻿#region
+
+using System.Net;
 using System.Net.Sockets;
+
 using BattleBitAPI.Common.Enums;
-using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
+
 using CommunityServerAPI.BattleBitAPI;
+using CommunityServerAPI.BattleBitAPI.Common.Extentions;
 
-namespace BattleBitAPI.Server
+#endregion
+
+namespace BattleBitAPI.Server;
+
+public class GameServer
 {
-    public class GameServer
-    {
-        // ---- Public Variables ---- 
-        public TcpClient Socket { get; private set; }
+	// ---- Private Variables ----
+	private byte[] mKeepAliveBuffer;
+	private long mLastPackageReceived;
+	private long mLastPackageSent;
+	private uint mReadPackageSize;
+	private Stream mReadStream;
+	private Stream mWriteStream;
 
-        /// <summary>
-        /// Is game server connected to our server?
-        /// </summary>
-        public bool IsConnected { get; private set; }
-        public IPAddress GameIP { get; private set; }
-        public int GamePort { get; private set; }
-        public bool IsPasswordProtected { get; private set; }
-        public string ServerName { get; private set; }
-        public string Gamemode { get; private set; }
-        public string Map { get; private set; }
-        public MapSize MapSize { get; private set; }
-        public MapDayNight DayNight { get; private set; }
-        public int CurrentPlayers { get; private set; }
-        public int InQueuePlayers { get; private set; }
-        public int MaxPlayers { get; private set; }
-        public string LoadingScreenText { get; private set; }
-        public string ServerRulesText { get; private set; }
+	// ---- Constrction ----
+	public GameServer(TcpClient socket, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
+	{
+		IsConnected = true;
+		Socket = socket;
 
-        /// <summary>
-        /// Reason why connection was terminated.
-        /// </summary>
-        public string TerminationReason { get; private set; }
+		GameIP = iP;
+		GamePort = port;
+		IsPasswordProtected = isPasswordProtected;
+		ServerName = serverName;
+		Gamemode = gamemode;
+		Map = map;
+		MapSize = mapSize;
+		DayNight = dayNight;
+		CurrentPlayers = currentPlayers;
+		InQueuePlayers = inQueuePlayers;
+		MaxPlayers = maxPlayers;
+		LoadingScreenText = loadingScreenText;
+		ServerRulesText = serverRulesText;
 
-        // ---- Private Variables ---- 
-        private byte[] mKeepAliveBuffer;
-        private Common.Serialization.Stream mWriteStream;
-        private Common.Serialization.Stream mReadStream;
-        private uint mReadPackageSize;
-        private long mLastPackageReceived;
-        private long mLastPackageSent;
+		TerminationReason = string.Empty;
 
-        // ---- Constrction ---- 
-        public GameServer(TcpClient socket, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
-        {
-            this.IsConnected = true;
-            this.Socket = socket;
+		mWriteStream = new MemoryStream();
+		mReadStream = new MemoryStream();
+		mKeepAliveBuffer = new byte[4]
+		{
+			0, 0, 0, 0
+		};
 
-            this.GameIP = iP;
-            this.GamePort = port;
-            this.IsPasswordProtected = isPasswordProtected;
-            this.ServerName = serverName;
-            this.Gamemode = gamemode;
-            this.Map = map;
-            this.MapSize = mapSize;
-            this.DayNight = dayNight;
-            this.CurrentPlayers = currentPlayers;
-            this.InQueuePlayers = inQueuePlayers;
-            this.MaxPlayers = maxPlayers;
-            this.LoadingScreenText = loadingScreenText;
-            this.ServerRulesText = serverRulesText;
+		mLastPackageReceived = Extensions.TickCount;
+		mLastPackageSent = Extensions.TickCount;
+	}
 
-            this.TerminationReason = string.Empty;
+	// ---- Public Variables ----
+	public TcpClient Socket { get; private set; }
 
-            this.mWriteStream = new Common.Serialization.Stream()
-            {
-                Buffer = new byte[Const.MaxNetworkPackageSize],
-                InPool = false,
-                ReadPosition = 0,
-                WritePosition = 0,
-            };
-            this.mReadStream = new Common.Serialization.Stream()
-            {
-                Buffer = new byte[Const.MaxNetworkPackageSize],
-                InPool = false,
-                ReadPosition = 0,
-                WritePosition = 0,
-            };
-            this.mKeepAliveBuffer = new byte[4]
-            {
-                0,0,0,0,
-            };
+	/// <summary>
+	///     Is game server connected to our server?
+	/// </summary>
+	public bool IsConnected { get; private set; }
 
-            this.mLastPackageReceived = Extentions.TickCount;
-            this.mLastPackageSent = Extentions.TickCount;
-        }
+	public IPAddress GameIP { get; private set; }
 
-        // ---- Tick ----
-        public async Task Tick()
-        {
-            if (!this.IsConnected)
-                return;
+	public int GamePort { get; private set; }
 
-            try
-            {
-                //Are we still connected on socket level?
-                if (!Socket.Connected)
-                {
-                    mClose("Connection was terminated.");
-                    return;
-                }
+	public bool IsPasswordProtected { get; private set; }
 
-                var networkStream = Socket.GetStream();
+	public string ServerName { get; private set; }
 
-                //Read network packages.
-                while (Socket.Available > 0)
-                {
-                    this.mLastPackageReceived = Extentions.TickCount;
+	public string Gamemode { get; private set; }
 
-                    //Do we know the package size?
-                    if (this.mReadPackageSize == 0)
-                    {
-                        const int sizeToRead = 4;
-                        int leftSizeToRead = sizeToRead - this.mReadStream.WritePosition;
+	public string Map { get; private set; }
 
-                        int read = await networkStream.ReadAsync(this.mReadStream.Buffer, this.mReadStream.WritePosition, leftSizeToRead);
-                        if (read <= 0)
-                            throw new Exception("Connection was terminated.");
+	public MapSize MapSize { get; private set; }
 
-                        this.mReadStream.WritePosition += read;
+	public MapDayNight DayNight { get; private set; }
 
-                        //Did we receive the package?
-                        if (this.mReadStream.WritePosition >= 4)
-                        {
-                            //Read the package size
-                            this.mReadPackageSize = this.mReadStream.ReadUInt32();
+	public int CurrentPlayers { get; private set; }
 
-                            if (this.mReadPackageSize > Const.MaxNetworkPackageSize)
-                                throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
+	public int InQueuePlayers { get; private set; }
 
-                            //Is this keep alive package?
-                            if (this.mReadPackageSize == 0)
-                            {
-                                Console.WriteLine("Keep alive was received.");
-                            }
+	public int MaxPlayers { get; private set; }
 
-                            //Reset the stream.
-                            this.mReadStream.Reset();
-                        }
-                    }
-                    else
-                    {
-                        int sizeToRead = (int)mReadPackageSize;
-                        int leftSizeToRead = sizeToRead - this.mReadStream.WritePosition;
+	public string LoadingScreenText { get; private set; }
 
-                        int read = await networkStream.ReadAsync(this.mReadStream.Buffer, this.mReadStream.WritePosition, leftSizeToRead);
-                        if (read <= 0)
-                            throw new Exception("Connection was terminated.");
+	public string ServerRulesText { get; private set; }
 
-                        this.mReadStream.WritePosition += read;
+	/// <summary>
+	///     Reason why connection was terminated.
+	/// </summary>
+	public string TerminationReason { get; private set; }
 
-                        //Do we have the package?
-                        if (this.mReadStream.WritePosition >= mReadPackageSize)
-                        {
-                            this.mReadPackageSize = 0;
+	// ---- Tick ----
+	public async Task Tick()
+	{
+		if (!IsConnected)
+			return;
 
-                            await mExecutePackage(this.mReadStream);
+		try
+		{
+			//Are we still connected on socket level?
+			if (!Socket.Connected)
+			{
+				mClose("Connection was terminated.");
+				return;
+			}
 
-                            //Reset
-                            this.mReadStream.Reset();
-                        }
-                    }
-                }
+			var networkStream = Socket.GetStream();
 
-                //Send the network packages.
-                if (this.mWriteStream.WritePosition > 0)
-                {
-                    lock (this.mWriteStream)
-                    {
-                        if (this.mWriteStream.WritePosition > 0)
-                        {
-                            networkStream.Write(this.mWriteStream.Buffer, 0, this.mWriteStream.WritePosition);
-                            this.mWriteStream.WritePosition = 0;
+			//Read network packages.
+			while (Socket.Available > 0)
+			{
+				mLastPackageReceived = Extensions.TickCount;
 
-                            this.mLastPackageSent = Extentions.TickCount;
-                        }
-                    }
-                }
+				//Do we know the package size?
+				if (mReadPackageSize == 0)
+				{
+					const int sizeToRead = 4;
+					var leftSizeToRead = sizeToRead - mReadStream.Position;
 
-                //Are we timed out?
-                if ((Extentions.TickCount - this.mLastPackageReceived) > Const.NetworkTimeout)
-                    throw new Exception("Game server timedout.");
+					networkStream.CopyTo(mReadStream, (int) leftSizeToRead);
+					if (leftSizeToRead <= 0)
+						throw new Exception("Connection was terminated.");
 
-                //Send keep alive if needed
-                if ((Extentions.TickCount - this.mLastPackageSent) > Const.NetworkKeepAlive)
-                {
-                    //Send keep alive.
-                    networkStream.Write(this.mKeepAliveBuffer, 0, 4);
+					//Did we receive the package?
+					if (mReadStream.Position >= 4)
+					{
+						using (var reader = new BinaryReader(mReadStream))
+						{
+							//Read the package size
+							mReadPackageSize = reader.ReadUInt32();
 
-                    this.mLastPackageSent = Extentions.TickCount;
+							if (mReadPackageSize > Const.MaxNetworkPackageSize)
+								throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
 
-                    Console.WriteLine("Keep alive was sent.");
-                }
-            }
-            catch (Exception e)
-            {
-                mClose(e.Message);
-            }
-        }
+							//Is this keep alive package?
+							if (mReadPackageSize == 0)
+								Console.WriteLine("Keep alive was received.");
+						}
 
-        // ---- Internal ----
-        private async Task mExecutePackage(Common.Serialization.Stream stream)
-        {
-            var communcation = (NetworkCommuncation)stream.ReadInt8();
-            switch (communcation)
-            {
+						//Reset the stream.
+						mReadStream.Seek(0, SeekOrigin.Begin);
+					}
+				}
+				else
+				{
+					var sizeToRead = (int)mReadPackageSize;
+					var leftSizeToRead = sizeToRead - mReadStream.Position;
 
-            }
-        }
+					if (leftSizeToRead <= 0)
+						throw new Exception("Connection was terminated.");
 
-        private void mClose(string reason)
-        {
-            if (this.IsConnected)
-            {
-                this.TerminationReason = reason;
-                this.IsConnected = false;
+					networkStream.CopyTo(mReadStream, (int) leftSizeToRead);
 
-                this.mWriteStream = null;
-                this.mReadStream = null;
-            }
-        }
-    }
+					//Do we have the package?
+					if (mReadStream.Position >= mReadPackageSize)
+					{
+						mReadPackageSize = 0;
+
+						await mExecutePackage(mReadStream);
+
+						//Reset
+						mReadStream.Seek(0, SeekOrigin.Begin);
+					}
+				}
+			}
+
+			//Send the network packages.
+			if (mWriteStream.Position > 0)
+				lock (mWriteStream)
+				{
+					if (mWriteStream.Position > 0)
+					{
+						mWriteStream.CopyTo(networkStream, (int) mWriteStream.Position);
+						mWriteStream.Seek( 0, SeekOrigin.Begin );
+
+						mLastPackageSent = Extensions.TickCount;
+					}
+				}
+
+			//Are we timed out?
+			if (Extensions.TickCount - mLastPackageReceived > Const.NetworkTimeout)
+				throw new Exception("Game server timedout.");
+
+			//Send keep alive if needed
+			if (Extensions.TickCount - mLastPackageSent > Const.NetworkKeepAlive)
+			{
+				//Send keep alive.
+				networkStream.Write(mKeepAliveBuffer, 0, 4);
+
+				mLastPackageSent = Extensions.TickCount;
+
+				Console.WriteLine("Keep alive was sent.");
+			}
+		}
+		catch (Exception e)
+		{
+			mClose(e.Message);
+		}
+	}
+
+	// ---- Internal ----
+	private async Task mExecutePackage(Stream stream)
+	{
+		using (var reader = new BinaryReader(stream))
+		{
+			var communcation = (NetworkCommuncation)reader.ReadByte();
+			switch (communcation)
+			{
+			}
+		}
+	}
+
+	private void mClose(string reason)
+	{
+		if (IsConnected)
+		{
+			TerminationReason = reason;
+			IsConnected = false;
+
+			mWriteStream = null;
+			mReadStream = null;
+		}
+	}
 }
