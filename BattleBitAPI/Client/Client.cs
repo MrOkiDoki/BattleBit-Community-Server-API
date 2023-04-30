@@ -156,6 +156,9 @@ namespace BattleBitAPI.Client
                                 this.mIsConnectingFlag = false;
                                 this.IsConnected = true;
 
+                                this.mLastPackageReceived = Extentions.TickCount;
+                                this.mLastPackageSent = Extentions.TickCount;
+
                                 mOnConnectedToServer();
                             }
                             else
@@ -325,17 +328,17 @@ namespace BattleBitAPI.Client
         // ---- Callbacks ---- 
         private void mOnConnectedToServer()
         {
-
+            Console.WriteLine("Connected to server.");
         }
         private void mOnDisconnectedFromServer(string reason)
         {
+            Console.WriteLine("Disconnected from server (" + reason + ").");
         }
-
 
         // ---- Private ---- 
         private void mLogError(string str)
         {
-
+            Console.WriteLine(str);
         }
         private void mClose(string reason)
         {
