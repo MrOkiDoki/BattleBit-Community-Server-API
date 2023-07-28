@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 using BattleBitAPI.Common.Enums;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
@@ -7,7 +8,7 @@ using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
 {
-    public class GameServer
+    public class GameServer : IDisposable
     {
         // ---- Public Variables ---- 
         public TcpClient Socket { get; private set; }
@@ -15,6 +16,7 @@ namespace BattleBitAPI.Server
         /// <summary>
         /// Is game server connected to our server?
         /// </summary>
+        public ulong ServerHash { get; private set; }
         public bool IsConnected { get; private set; }
         public IPAddress GameIP { get; private set; }
         public int GamePort { get; private set; }
@@ -34,20 +36,26 @@ namespace BattleBitAPI.Server
         /// Reason why connection was terminated.
         /// </summary>
         public string TerminationReason { get; private set; }
+        internal bool ReconnectFlag { get; set; }
 
         // ---- Private Variables ---- 
         private byte[] mKeepAliveBuffer;
+        private Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> mExecutionFunc;
         private Common.Serialization.Stream mWriteStream;
         private Common.Serialization.Stream mReadStream;
         private uint mReadPackageSize;
         private long mLastPackageReceived;
         private long mLastPackageSent;
+        private bool mIsDisposed;
+        private mInternalResources mInternal;
 
         // ---- Constrction ---- 
-        public GameServer(TcpClient socket, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
+        public GameServer(TcpClient socket, mInternalResources resources, Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> func, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
         {
             this.IsConnected = true;
             this.Socket = socket;
+            this.mInternal = resources;
+            this.mExecutionFunc = func;
 
             this.GameIP = iP;
             this.GamePort = port;
@@ -86,12 +94,16 @@ namespace BattleBitAPI.Server
 
             this.mLastPackageReceived = Extentions.TickCount;
             this.mLastPackageSent = Extentions.TickCount;
+
+            this.ServerHash = (ulong)(port << 32) | iP.ToUInt();
         }
 
         // ---- Tick ----
         public async Task Tick()
         {
             if (!this.IsConnected)
+                return;
+            if (this.mIsDisposed)
                 return;
 
             try
@@ -131,13 +143,6 @@ namespace BattleBitAPI.Server
                             if (this.mReadPackageSize > Const.MaxNetworkPackageSize)
                                 throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
 
-                            //Is this keep alive package?
-                            if (this.mReadPackageSize == 0)
-                            {
-                                Console.WriteLine("Keep alive was received.");
-                            }
-
-                            //Reset the stream.
                             this.mReadStream.Reset();
                         }
                     }
@@ -157,7 +162,7 @@ namespace BattleBitAPI.Server
                         {
                             this.mReadPackageSize = 0;
 
-                            await mExecutePackage(this.mReadStream);
+                            await this.mExecutionFunc(this, this.mInternal, this.mReadStream);
 
                             //Reset
                             this.mReadStream.Reset();
@@ -172,7 +177,7 @@ namespace BattleBitAPI.Server
                     {
                         if (this.mWriteStream.WritePosition > 0)
                         {
-                            networkStream.Write(this.mWriteStream.Buffer, 0, this.mWriteStream.WritePosition);
+                            networkStream.WriteAsync(this.mWriteStream.Buffer, 0, this.mWriteStream.WritePosition);
                             this.mWriteStream.WritePosition = 0;
 
                             this.mLastPackageSent = Extentions.TickCount;
@@ -182,17 +187,15 @@ namespace BattleBitAPI.Server
 
                 //Are we timed out?
                 if ((Extentions.TickCount - this.mLastPackageReceived) > Const.NetworkTimeout)
-                    throw new Exception("Game server timedout.");
+                    throw new Exception("Timedout.");
 
                 //Send keep alive if needed
                 if ((Extentions.TickCount - this.mLastPackageSent) > Const.NetworkKeepAlive)
                 {
                     //Send keep alive.
-                    networkStream.Write(this.mKeepAliveBuffer, 0, 4);
-
+                    await networkStream.WriteAsync(this.mKeepAliveBuffer, 0, 4);
+                    await networkStream.FlushAsync();
                     this.mLastPackageSent = Extentions.TickCount;
-
-                    Console.WriteLine("Keep alive was sent.");
                 }
             }
             catch (Exception e)
@@ -201,25 +204,205 @@ namespace BattleBitAPI.Server
             }
         }
 
-        // ---- Internal ----
-        private async Task mExecutePackage(Common.Serialization.Stream stream)
+        // ---- Functions ----
+        public void WriteToSocket(Common.Serialization.Stream pck)
         {
-            var communcation = (NetworkCommuncation)stream.ReadInt8();
-            switch (communcation)
+            lock (mWriteStream)
             {
+                mWriteStream.Write((uint)pck.WritePosition);
+                mWriteStream.Write(pck.Buffer, 0, pck.WritePosition);
+            }
+        }
+        public void ExecuteCommand(string cmd)
+        {
+            if (string.IsNullOrWhiteSpace(cmd))
+                return;
 
+            int bytesLong = System.Text.Encoding.UTF8.GetByteCount(cmd);
+            lock (mWriteStream)
+            {
+                mWriteStream.Write((uint)(1 + 2 + bytesLong));
+                mWriteStream.Write((byte)NetworkCommuncation.ExecuteCommand);
+                mWriteStream.Write(cmd);
             }
         }
 
+        public void SetNewPassword(string newPassword)
+        {
+            ExecuteCommand("setpass " + newPassword);
+        }
+        public void SetPingLimit(int newPing)
+        {
+            ExecuteCommand("setmaxping " + newPing);
+        }
+        public void AnnounceShort(string msg)
+        {
+            ExecuteCommand("an " + msg);
+        }
+        public void AnnounceLong(string msg)
+        {
+            ExecuteCommand("ann " + msg);
+        }
+        public void UILogOnServer(string msg, float messageLifetime)
+        {
+            ExecuteCommand("serverlog " + msg + " " + messageLifetime);
+        }
+        public void ForceStartGame()
+        {
+            ExecuteCommand("forcestart");
+        }
+        public void ForceEndGame()
+        {
+            ExecuteCommand("endgame");
+        }
+        public void SayToChat(string msg)
+        {
+            ExecuteCommand("say " + msg);
+        }
+
+        public void StopServer()
+        {
+            ExecuteCommand("stop");
+        }
+        public void CloseServer()
+        {
+            ExecuteCommand("notifyend");
+        }
+        public void KickAllPlayers()
+        {
+            ExecuteCommand("kick all");
+        }
+        public void Kick(ulong steamID, string reason)
+        {
+            ExecuteCommand("kick " + steamID + " " + reason);
+        }
+        public void Kick(Player player, string reason)
+        {
+            Kick(player.SteamID, reason);
+        }
+        public void Kill(ulong steamID)
+        {
+            ExecuteCommand("kill " + steamID);
+        }
+        public void Kill(Player player)
+        {
+            Kill(player.SteamID);
+        }
+        public void ChangeTeam(ulong steamID)
+        {
+            ExecuteCommand("changeteam " + steamID);
+        }
+        public void ChangeTeam(Player player)
+        {
+            ChangeTeam(player.SteamID);
+        }
+        public void KickFromSquad(ulong steamID)
+        {
+            ExecuteCommand("squadkick " + steamID);
+        }
+        public void KickFromSquad(Player player)
+        {
+            KickFromSquad(player.SteamID);
+        }
+        public void DisbandPlayerSSquad(ulong steamID)
+        {
+            ExecuteCommand("squaddisband " + steamID);
+        }
+        public void DisbandPlayerCurrentSquad(Player player)
+        {
+            DisbandPlayerSSquad(player.SteamID);
+        }
+        public void PromoteSquadLeader(ulong steamID)
+        {
+            ExecuteCommand("squadpromote " + steamID);
+        }
+        public void PromoteSquadLeader(Player player)
+        {
+            PromoteSquadLeader(player.SteamID);
+        }
+        public void WarnPlayer(ulong steamID, string msg)
+        {
+            ExecuteCommand("warn " + steamID + " " + msg);
+        }
+        public void WarnPlayer(Player player, string msg)
+        {
+            WarnPlayer(player.SteamID, msg);
+        }
+        public void MessageToPlayer(ulong steamID, string msg)
+        {
+            ExecuteCommand("msg " + steamID + " " + msg);
+        }
+        public void MessageToPlayer(Player player, string msg)
+        {
+            MessageToPlayer(player.SteamID, msg);
+        }
+
+        // ---- Closing ----
         private void mClose(string reason)
         {
             if (this.IsConnected)
             {
                 this.TerminationReason = reason;
                 this.IsConnected = false;
+            }
+        }
 
+        // ---- Disposing ----
+        public void Dispose()
+        {
+            if (this.mIsDisposed)
+                return;
+            this.mIsDisposed = true;
+
+            if (this.mWriteStream != null)
+            {
+                this.mWriteStream.Dispose();
                 this.mWriteStream = null;
+            }
+
+            if (this.mReadStream != null)
+            {
+                this.mReadStream.Dispose();
                 this.mReadStream = null;
+            }
+
+            if (this.Socket != null)
+            {
+                this.Socket.SafeClose();
+                this.Socket = null;
+            }
+        }
+
+        // ---- Overrides ----
+        public override string ToString()
+        {
+            return
+                this.GameIP + ":" + this.GamePort + " - " +
+                this.ServerName;
+        }
+
+        // ---- Internal ----
+        public class mInternalResources
+        {
+            public Dictionary<ulong, Player> Players = new Dictionary<ulong, Player>(254);
+
+            public void AddPlayer<TPlayer>(TPlayer player) where TPlayer : Player
+            {
+                lock (Players)
+                {
+                    Players.Remove(player.SteamID);
+                    Players.Add(player.SteamID, player);
+                }
+            }
+            public void RemovePlayer<TPlayer>(TPlayer player) where TPlayer : Player
+            {
+                lock (Players)
+                    Players.Remove(player.SteamID);
+            }
+            public bool TryGetPlayer(ulong steamID, out Player result)
+            {
+                lock (Players)
+                    return Players.TryGetValue(steamID, out result);
             }
         }
     }

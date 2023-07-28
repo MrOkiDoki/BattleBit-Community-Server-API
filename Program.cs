@@ -1,47 +1,37 @@
-﻿using BattleBitAPI.Client;
+﻿using BattleBitAPI;
+using BattleBitAPI.Common;
+using BattleBitAPI.Common.Enums;
 using BattleBitAPI.Server;
-using System.Net;
+using System.Numerics;
 
 class Program
 {
     static void Main(string[] args)
     {
-        if (Console.ReadLine().Contains("h"))
-        {
-            ServerListener server = new ServerListener();
-            server.OnGameServerConnecting += OnClientConnecting;
-            server.OnGameServerConnected += OnGameServerConnected;
-            server.OnGameServerDisconnected += OnGameServerDisconnected;
-            server.Start(29294);
-
-            Thread.Sleep(-1);
-        }
-        else
-        {
-            Client c = new Client("127.0.0.1", 29294);
-            c.ServerName = "Test Server";
-            c.Gamemode = "TDP";
-            c.Map = "DustyDew";
-
-            while (true)
-            {
-                c.Tick();
-                Thread.Sleep(1);
-            }
-        }
+        var listener = new ServerListener<MyPlayer>();
+        listener.OnGetPlayerStats += OnGetPlayerStats;
+        listener.OnSavePlayerStats += OnSavePlayerStats;
+        listener.Start(29294);//Port
+        Thread.Sleep(-1);
     }
 
-    private static async Task<bool> OnClientConnecting(IPAddress ip)
+    public static PlayerStats Stats;
+
+    private static async Task OnSavePlayerStats(ulong steamID, PlayerStats stats)
     {
-        Console.WriteLine(ip + " is connecting.");
-        return true;
+        Stats = stats;
     }
-    private static async Task OnGameServerConnected(GameServer server)
+
+    private static async Task<PlayerStats> OnGetPlayerStats(ulong steamID)
     {
-        Console.WriteLine("Server " + server.ServerName + " was connected.");
+        if (Stats == null)
+            Stats = new PlayerStats();
+        Stats.Progress.Rank = 155;
+        Stats.Roles = Roles.Moderator;
+        Stats.IsBanned = true;
+        return Stats;
     }
-    private static async Task OnGameServerDisconnected(GameServer server)
-    {
-        Console.WriteLine("Server " + server.ServerName + " was disconnected. (" + server.TerminationReason + ")");
-    }
+}
+class MyPlayer : Player
+{
 }

@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
+using BattleBitAPI.Common;
 using BattleBitAPI.Common.Enums;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Common.Serialization;
@@ -8,7 +10,7 @@ using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
 {
-    public class ServerListener : IDisposable
+    public class ServerListener<TPlayer> : IDisposable where TPlayer : Player
     {
         // --- Public --- 
         public bool IsListening { get; private set; }
@@ -17,26 +19,138 @@ namespace BattleBitAPI.Server
 
         // --- Events --- 
         /// <summary>
-        /// Fired when an attempt made to connect to the server.
-        /// Connection will be allowed if function returns true, otherwise will be blocked.
-        /// Default, any connection attempt will be accepted.
+        /// Fired when an attempt made to connect to the server.<br/>
+        /// Default, any connection attempt will be accepted
         /// </summary>
+        /// 
+        /// <remarks>
+        /// IPAddress: IP of incoming connection <br/>
+        /// </remarks>
+        /// 
+        /// <value>
+        /// Returns: true if allow connection, false if deny the connection.
+        /// </value>
         public Func<IPAddress, Task<bool>> OnGameServerConnecting { get; set; }
 
         /// <summary>
         /// Fired when a game server connects.
         /// </summary>
+        /// 
+        /// <remarks>
+        /// GameServer: Game server that is connecting.<br/>
+        /// </remarks>
         public Func<GameServer, Task> OnGameServerConnected { get; set; }
+
         /// <summary>
-        /// Fired when a game server disconnects. Check (server.TerminationReason) to see the reason.
+        /// Fired when a game server reconnects. (When game server connects while a socket is already open)
         /// </summary>
+        /// 
+        /// <remarks>
+        /// GameServer: Game server that is reconnecting.<br/>
+        /// </remarks>
+        public Func<GameServer, Task> OnGameServerReconnected { get; set; }
+
+        /// <summary>
+        /// Fired when a game server disconnects. Check (GameServer.TerminationReason) to see the reason.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// GameServer: Game server that disconnected.<br/>
+        /// </remarks>
         public Func<GameServer, Task> OnGameServerDisconnected { get; set; }
+
+        /// <summary>
+        /// Fired when a new instance of PlayerClass is being created.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// ulong - SteamID of the player <br/>
+        /// string - Username of the player <br/>
+        /// Gameserver - The game server instance that player in <br/>
+        /// </remarks>
+        /// <value>
+        /// Returns: An instance of Player class where 'SteamID', 'Username', 'Gameserver' assiged.
+        /// </value>
+        public Func<ulong, string, GameServer, TPlayer> OnCreateClient { get; set; }
+
+        /// <summary>
+        /// Fired when a player connects to a server.<br/>
+        /// Check player.GameServer get the server that player joined.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// Player: The player that connected to the server<br/>
+        /// </remarks>
+        public Func<TPlayer, Task> OnPlayerConnected { get; set; }
+
+        /// <summary>
+        /// Fired when a player disconnects from a server.<br/>
+        /// Check player.GameServer get the server that player left.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// Player: The player that disconnected from the server<br/>
+        /// </remarks>
+        public Func<TPlayer, Task> OnPlayerDisconnected { get; set; }
+
+        /// <summary>
+        /// Fired when a player types a message to text chat.<br/>
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// Player: The player that typed the message <br/>
+        /// ChatChannel: The channel the message was sent <br/>
+        /// string - Message: The message<br/>
+        /// </remarks>
+        public Func<TPlayer, ChatChannel, string, Task> OnPlayerTypedMessage { get; set; }
+
+        /// <summary>
+        /// Fired when a player kills another player.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// Player: The killer player<br/>
+        /// Vector3: The position of killer<br/>
+        /// Player: The target player that got killed<br/>
+        /// Vector3: The target player's position<br/>
+        /// string - Tool: The tool user to kill the player<br/>
+        /// </remarks>
+        public Func<TPlayer, Vector3, TPlayer, Vector3, string, Task> OnAPlayerKilledAnotherPlayer { get; set; }
+
+        /// <summary>
+        /// Fired when game server requests the stats of a player, this function should return in 3000ms or player will not able to join to server.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// ulong - SteamID of the player<br/>
+        /// </remarks>
+        /// <value>
+        /// Returns: The stats of the player.
+        /// </value>
+        public Func<ulong, Task<PlayerStats>> OnGetPlayerStats { get; set; }
+
+        /// <summary>
+        /// Fired when game server requests to save the stats of a player.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// ulong - SteamID of the player<br/>
+        /// PlayerStats - Stats of the player<br/>
+        /// </remarks>
+        /// <value>
+        /// Returns: The stats of the player.
+        /// </value>
+        public Func<ulong, PlayerStats, Task> OnSavePlayerStats { get; set; }
 
         // --- Private --- 
         private TcpListener mSocket;
+        private Dictionary<ulong, GameServer> mActiveConnections;
 
         // --- Construction --- 
-        public ServerListener() { }
+        public ServerListener()
+        {
+            this.mActiveConnections = new Dictionary<ulong, GameServer>(16);
+        }
 
         // --- Starting ---
         public void Start(IPAddress bindIP, int port)
@@ -105,6 +219,7 @@ namespace BattleBitAPI.Server
             }
 
             GameServer server = null;
+            GameServer.mInternalResources resources;
             try
             {
                 using (CancellationTokenSource source = new CancellationTokenSource(Const.HailConnectTimeout))
@@ -290,7 +405,67 @@ namespace BattleBitAPI.Server
                             }
                         }
 
-                        server = new GameServer(client, ip, gamePort, isPasswordProtected, serverName, gameMode, gamemap, size, dayNight, currentPlayers, queuePlayers, maxPlayers, loadingScreenText, serverRulesText);
+                        resources = new GameServer.mInternalResources();
+                        server = new GameServer(client, resources, mExecutePackage, ip, gamePort, isPasswordProtected, serverName, gameMode, gamemap, size, dayNight, currentPlayers, queuePlayers, maxPlayers, loadingScreenText, serverRulesText);
+
+                        //Client Count
+                        int clientCount = 0;
+                        {
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, 1, source.Token))
+                                throw new Exception("Unable to read the Client Count Players");
+                            clientCount = readStream.ReadInt8();
+                        }
+
+                        //Get each client.
+                        while (clientCount > 0)
+                        {
+                            clientCount--;
+
+                            ulong steamid = 0;
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 8, source.Token))
+                                    throw new Exception("Unable to read the SteamId");
+                                steamid = readStream.ReadUInt64();
+                            }
+
+                            string username;
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 2, source.Token))
+                                    throw new Exception("Unable to read the Username Size");
+
+                                int stringSize = readStream.ReadUInt16();
+                                if (stringSize > 0)
+                                {
+                                    readStream.Reset();
+                                    if (!await networkStream.TryRead(readStream, stringSize, source.Token))
+                                        throw new Exception("Unable to read the Username");
+
+                                    username = readStream.ReadString(stringSize);
+                                }
+                                else
+                                {
+                                    username = string.Empty;
+                                }
+                            }
+
+                            if (OnCreateClient != null)
+                            {
+                                var player = OnCreateClient(steamid, username, server);
+                                resources.AddPlayer(player);
+                            }
+                            else
+                            {
+                                TPlayer player = Activator.CreateInstance<TPlayer>();
+                                player.SteamID = steamid;
+                                player.Name = username;
+                                player.GameServer = server;
+
+                                resources.AddPlayer(player);
+                            }
+                        }
 
                         //Send accepted notification.
                         networkStream.WriteByte((byte)NetworkCommuncation.Accepted);
@@ -301,8 +476,6 @@ namespace BattleBitAPI.Server
             {
                 try
                 {
-                    Console.WriteLine(e.Message);
-
                     var networkStream = client.GetStream();
                     using (var pck = BattleBitAPI.Common.Serialization.Stream.Get())
                     {
@@ -316,14 +489,44 @@ namespace BattleBitAPI.Server
                 }
                 catch { }
 
+                if (server != null)
+                {
+                    server.Dispose();
+                    server = null;
+                }
 
                 client.SafeClose();
                 return;
             }
 
+            bool connectionExist = false;
+
+            //Track the connection
+            lock (this.mActiveConnections)
+            {
+                //An old connection exist with same IP + Port?
+                if (connectionExist = this.mActiveConnections.TryGetValue(server.ServerHash, out var oldServer))
+                {
+                    oldServer.ReconnectFlag = true;
+                    this.mActiveConnections.Remove(server.ServerHash);
+                }
+
+                this.mActiveConnections.Add(server.ServerHash, server);
+            }
+
             //Call the callback.
-            if (OnGameServerConnected != null)
-                await OnGameServerConnected.Invoke(server);
+            if (!connectionExist)
+            {
+                //New connection!
+                if (OnGameServerConnected != null)
+                    await OnGameServerConnected.Invoke(server);
+            }
+            else
+            {
+                //Reconnection
+                if (OnGameServerReconnected != null)
+                    await OnGameServerReconnected.Invoke(server);
+            }
 
             //Set the buffer sizes.
             client.ReceiveBufferSize = Const.MaxNetworkPackageSize;
@@ -334,14 +537,152 @@ namespace BattleBitAPI.Server
         }
         private async Task mHandleGameServer(GameServer server)
         {
-            while (server.IsConnected)
+            using (server)
             {
-                await server.Tick();
-                await Task.Delay(1);
+                while (server.IsConnected)
+                {
+                    await server.Tick();
+                    await Task.Delay(1);
+                }
+
+                if (OnGameServerDisconnected != null && !server.ReconnectFlag)
+                    await OnGameServerDisconnected.Invoke(server);
             }
 
-            if (OnGameServerDisconnected != null)
-                await OnGameServerDisconnected.Invoke(server);
+            //Remove from list.
+            if (!server.ReconnectFlag)
+                lock (this.mActiveConnections)
+                    this.mActiveConnections.Remove(server.ServerHash);
+        }
+
+        // --- Logic Executing ---
+        private async Task mExecutePackage(GameServer server, GameServer.mInternalResources resources, Common.Serialization.Stream stream)
+        {
+            var communcation = (NetworkCommuncation)stream.ReadInt8();
+            switch (communcation)
+            {
+                case NetworkCommuncation.PlayerConnected:
+                    {
+                        if (stream.CanRead(8))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            if (stream.TryReadString(out var username))
+                            {
+                                if (OnCreateClient != null)
+                                {
+                                    var player = OnCreateClient(steamID, username, server);
+                                    resources.AddPlayer(player);
+                                    if (OnPlayerConnected != null)
+                                        await OnPlayerConnected.Invoke(player);
+                                }
+                                else
+                                {
+                                    TPlayer player = Activator.CreateInstance<TPlayer>();
+                                    player.SteamID = steamID;
+                                    player.Name = username;
+                                    player.GameServer = server;
+
+                                    resources.AddPlayer(player);
+                                    if (OnPlayerConnected != null)
+                                        await OnPlayerConnected.Invoke(player);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.PlayerDisconnected:
+                    {
+                        if (stream.CanRead(8))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            bool exist;
+                            Player player;
+                            lock (resources.Players)
+                                exist = resources.Players.Remove(steamID, out player);
+
+                            if (exist)
+                            {
+                                if (OnPlayerDisconnected != null)
+                                    await OnPlayerDisconnected.Invoke((TPlayer)player);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerTypedMessage:
+                    {
+                        if (stream.CanRead(8 + 1 + 2))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+
+                            if (resources.TryGetPlayer(steamID, out var player))
+                            {
+                                ChatChannel chat = (ChatChannel)stream.ReadInt8();
+                                if (stream.TryReadString(out var msg))
+                                {
+                                    if (OnPlayerTypedMessage != null)
+                                        await OnPlayerTypedMessage.Invoke((TPlayer)player, chat, msg);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerKilledAnotherPlayer:
+                    {
+                        if (stream.CanRead(8 + 12 + 8 + 12 + 2))
+                        {
+                            ulong killer = stream.ReadUInt64();
+                            Vector3 killerPos = new Vector3(stream.ReadFloat(), stream.ReadFloat(), stream.ReadFloat());
+
+                            ulong victim = stream.ReadUInt64();
+                            Vector3 victimPos = new Vector3(stream.ReadFloat(), stream.ReadFloat(), stream.ReadFloat());
+
+                            if (stream.TryReadString(out var tool))
+                            {
+                                if (resources.TryGetPlayer(killer, out var killerClient))
+                                    if (resources.TryGetPlayer(victim, out var victimClient))
+                                        if (OnAPlayerKilledAnotherPlayer != null)
+                                            OnAPlayerKilledAnotherPlayer.Invoke((TPlayer)killerClient, killerPos, (TPlayer)victimClient, victimPos, tool);
+                            }
+                        }
+
+                        break;
+                    }
+                case NetworkCommuncation.GetPlayerStats:
+                    {
+                        if (stream.CanRead(8))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+
+                            if (OnGetPlayerStats != null)
+                            {
+                                var stats = await OnGetPlayerStats.Invoke(steamID);
+
+                                using (var response = Common.Serialization.Stream.Get())
+                                {
+                                    response.Write((byte)NetworkCommuncation.SendPlayerStats);
+                                    response.Write(steamID);
+                                    stats.Write(response);
+
+                                    server.WriteToSocket(response);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.SavePlayerStats:
+                    {
+                        if (stream.CanRead(8 + 4))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            PlayerStats stats = new PlayerStats();
+                            stats.Read(stream);
+
+                            if (OnSavePlayerStats != null)
+                                await OnSavePlayerStats.Invoke(steamID, stats);
+                        }
+                        break;
+                    }
+            }
         }
 
         // --- Disposing --- 

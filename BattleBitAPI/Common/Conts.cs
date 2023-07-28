@@ -14,11 +14,15 @@
         /// <summary>
         /// How frequently client/server will send keep alive to each other when no message is being sent to each other for a while.
         /// </summary>
-        public const int NetworkKeepAlive = 15 * 1000;//15 seconds
+        public const int NetworkKeepAlive = 5 * 1000;//15 seconds
         /// <summary>
         /// How long server/client will wait other side to send their hail/initial package. In miliseconds.
         /// </summary>
+#if DEBUG
+        public const int HailConnectTimeout = 20 * 1000;
+#else
         public const int HailConnectTimeout = 2 * 1000;
+#endif
 
         // ---- Server Fields ---- 
         public const int MinServerNameLength = 5;
