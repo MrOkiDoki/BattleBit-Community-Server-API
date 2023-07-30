@@ -2,7 +2,6 @@
 using System.Net.Sockets;
 using System.Numerics;
 using BattleBitAPI.Common;
-using BattleBitAPI.Common.Enums;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Common.Serialization;
 using BattleBitAPI.Networking;
@@ -60,20 +59,6 @@ namespace BattleBitAPI.Server
         public Func<GameServer, Task> OnGameServerDisconnected { get; set; }
 
         /// <summary>
-        /// Fired when a new instance of PlayerClass is being created.
-        /// </summary>
-        /// 
-        /// <remarks>
-        /// ulong - SteamID of the player <br/>
-        /// string - Username of the player <br/>
-        /// Gameserver - The game server instance that player in <br/>
-        /// </remarks>
-        /// <value>
-        /// Returns: An instance of Player class where 'SteamID', 'Username', 'Gameserver' assiged.
-        /// </value>
-        public Func<ulong, string, GameServer, TPlayer> OnCreateClient { get; set; }
-
-        /// <summary>
         /// Fired when a player connects to a server.<br/>
         /// Check player.GameServer get the server that player joined.
         /// </summary>
@@ -123,11 +108,12 @@ namespace BattleBitAPI.Server
         /// 
         /// <remarks>
         /// ulong - SteamID of the player<br/>
+        /// PlayerStats - The official stats of the player<br/>
         /// </remarks>
         /// <value>
-        /// Returns: The stats of the player.
+        /// Returns: The modified stats of the player.
         /// </value>
-        public Func<ulong, Task<PlayerStats>> OnGetPlayerStats { get; set; }
+        public Func<ulong, PlayerStats, Task<PlayerStats>> OnGetPlayerStats { get; set; }
 
         /// <summary>
         /// Fired when game server requests to save the stats of a player.
@@ -141,6 +127,72 @@ namespace BattleBitAPI.Server
         /// Returns: The stats of the player.
         /// </value>
         public Func<ulong, PlayerStats, Task> OnSavePlayerStats { get; set; }
+
+        /// <summary>
+        /// Fired when a player requests server to change role.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player requesting<br/>
+        /// GameRole - The role the player asking to change<br/>
+        /// </remarks>
+        /// <value>
+        /// Returns: True if you accept if, false if you don't.
+        /// </value>
+        public Func<TPlayer, GameRole, Task<bool>> OnPlayerRequestingToChangeRole { get; set; }
+
+        /// <summary>
+        /// Fired when a player changes their game role.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// GameRole - The new role of the player<br/>
+        /// </remarks>
+        public Func<TPlayer, GameRole, Task> OnPlayerChangedRole { get; set; }
+
+        /// <summary>
+        /// Fired when a player joins a squad.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// Squads - The squad player joined<br/>
+        /// </remarks>
+        public Func<TPlayer, Squads, Task> OnPlayerJoinedASquad { get; set; }
+
+        /// <summary>
+        /// Fired when a player leaves their squad.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// Squads - The squad that player left<br/>
+        /// </remarks>
+        public Func<TPlayer, Squads, Task> OnPlayerLeftSquad { get; set; }
+
+        /// <summary>
+        /// Fired when a player changes team.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// Team - The new team that player joined<br/>
+        /// </remarks>
+        public Func<TPlayer, Team, Task> OnPlayerChangedTeam { get; set; }
+
+        /// <summary>
+        /// Fired when a player is spawning.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// PlayerSpawnRequest - The request<br/>
+        /// </remarks>
+        /// <value>
+        /// Returns: The new spawn response
+        /// </value>
+        public Func<TPlayer, PlayerSpawnRequest, Task<PlayerSpawnRequest>> OnPlayerSpawning { get; set; }
 
         // --- Private --- 
         private TcpListener mSocket;
@@ -451,20 +503,45 @@ namespace BattleBitAPI.Server
                                 }
                             }
 
-                            if (OnCreateClient != null)
+                            //Team
+                            Team team;
                             {
-                                var player = OnCreateClient(steamid, username, server);
-                                resources.AddPlayer(player);
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 1, source.Token))
+                                    throw new Exception("Unable to read the Team");
+                                team = (Team)readStream.ReadInt8();
                             }
-                            else
-                            {
-                                TPlayer player = Activator.CreateInstance<TPlayer>();
-                                player.SteamID = steamid;
-                                player.Name = username;
-                                player.GameServer = server;
 
-                                resources.AddPlayer(player);
+                            //Squad
+                            Squads squad;
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 1, source.Token))
+                                    throw new Exception("Unable to read the Squad");
+                                squad = (Squads)readStream.ReadInt8();
                             }
+
+                            //Role
+                            GameRole role;
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 1, source.Token))
+                                    throw new Exception("Unable to read the Role");
+                                role = (GameRole)readStream.ReadInt8();
+                            }
+
+                            TPlayer player = Activator.CreateInstance<TPlayer>();
+                            player.SteamID = steamid;
+                            player.Name = username;
+                            player.GameServer = server;
+
+                            player.Team = team;
+                            player.Squad = squad;
+                            player.Role = role;
+
+                            player.OnInitialized();
+
+                            resources.AddPlayer(player);
                         }
 
                         //Send accepted notification.
@@ -563,29 +640,29 @@ namespace BattleBitAPI.Server
             {
                 case NetworkCommuncation.PlayerConnected:
                     {
-                        if (stream.CanRead(8))
+                        if (stream.CanRead(8 + 2 + (1 + 1 + 1)))
                         {
                             ulong steamID = stream.ReadUInt64();
                             if (stream.TryReadString(out var username))
                             {
-                                if (OnCreateClient != null)
-                                {
-                                    var player = OnCreateClient(steamID, username, server);
-                                    resources.AddPlayer(player);
-                                    if (OnPlayerConnected != null)
-                                        await OnPlayerConnected.Invoke(player);
-                                }
-                                else
-                                {
-                                    TPlayer player = Activator.CreateInstance<TPlayer>();
-                                    player.SteamID = steamID;
-                                    player.Name = username;
-                                    player.GameServer = server;
+                                Team team = (Team)stream.ReadInt8();
+                                Squads squad = (Squads)stream.ReadInt8();
+                                GameRole role = (GameRole)stream.ReadInt8();
 
-                                    resources.AddPlayer(player);
-                                    if (OnPlayerConnected != null)
-                                        await OnPlayerConnected.Invoke(player);
-                                }
+                                TPlayer player = Activator.CreateInstance<TPlayer>();
+                                player.SteamID = steamID;
+                                player.Name = username;
+                                player.GameServer = server;
+
+                                player.Team = team;
+                                player.Squad = squad;
+                                player.Role = role;
+
+                                player.OnInitialized();
+
+                                resources.AddPlayer(player);
+                                if (OnPlayerConnected != null)
+                                    await OnPlayerConnected.Invoke(player);
                             }
                         }
                         break;
@@ -641,7 +718,7 @@ namespace BattleBitAPI.Server
                                 if (resources.TryGetPlayer(killer, out var killerClient))
                                     if (resources.TryGetPlayer(victim, out var victimClient))
                                         if (OnAPlayerKilledAnotherPlayer != null)
-                                            OnAPlayerKilledAnotherPlayer.Invoke((TPlayer)killerClient, killerPos, (TPlayer)victimClient, victimPos, tool);
+                                            await OnAPlayerKilledAnotherPlayer.Invoke((TPlayer)killerClient, killerPos, (TPlayer)victimClient, victimPos, tool);
                             }
                         }
 
@@ -649,22 +726,22 @@ namespace BattleBitAPI.Server
                     }
                 case NetworkCommuncation.GetPlayerStats:
                     {
-                        if (stream.CanRead(8))
+                        if (stream.CanRead(8 + 2))
                         {
                             ulong steamID = stream.ReadUInt64();
 
+                            var stats = new PlayerStats();
+                            stats.Read(stream);
+
                             if (OnGetPlayerStats != null)
+                                stats = await OnGetPlayerStats.Invoke(steamID, stats);
+
+                            using (var response = Common.Serialization.Stream.Get())
                             {
-                                var stats = await OnGetPlayerStats.Invoke(steamID);
-
-                                using (var response = Common.Serialization.Stream.Get())
-                                {
-                                    response.Write((byte)NetworkCommuncation.SendPlayerStats);
-                                    response.Write(steamID);
-                                    stats.Write(response);
-
-                                    server.WriteToSocket(response);
-                                }
+                                response.Write((byte)NetworkCommuncation.SendPlayerStats);
+                                response.Write(steamID);
+                                stats.Write(response);
+                                server.WriteToSocket(response);
                             }
                         }
                         break;
@@ -679,6 +756,121 @@ namespace BattleBitAPI.Server
 
                             if (OnSavePlayerStats != null)
                                 await OnSavePlayerStats.Invoke(steamID, stats);
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerAskingToChangeRole:
+                    {
+                        if (stream.CanRead(8 + 1))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            GameRole role = (GameRole)stream.ReadInt8();
+
+                            if (resources.TryGetPlayer(steamID, out var client))
+                            {
+                                bool accepted = true;
+
+                                if (OnPlayerRequestingToChangeRole != null)
+                                    accepted = await OnPlayerRequestingToChangeRole.Invoke((TPlayer)client, role);
+
+                                if (accepted)
+                                    server.SetRoleTo(steamID, role);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerChangedRole:
+                    {
+                        if (stream.CanRead(8 + 1))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            GameRole role = (GameRole)stream.ReadInt8();
+
+                            if (resources.TryGetPlayer(steamID, out var client))
+                            {
+                                client.Role = role;
+                                if (OnPlayerChangedRole != null)
+                                    await OnPlayerChangedRole.Invoke((TPlayer)client, role);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerJoinedASquad:
+                    {
+                        if (stream.CanRead(8 + 1))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            Squads squad = (Squads)stream.ReadInt8();
+
+                            if (resources.TryGetPlayer(steamID, out var client))
+                            {
+                                client.Squad = squad;
+                                if (OnPlayerJoinedASquad != null)
+                                    await OnPlayerJoinedASquad.Invoke((TPlayer)client, squad);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerLeftSquad:
+                    {
+                        if (stream.CanRead(8))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+
+                            if (resources.TryGetPlayer(steamID, out var client))
+                            {
+                                var oldSquad = client.Squad;
+                                var oldRole = client.Role;
+                                client.Squad = Squads.NoSquad;
+                                client.Role = GameRole.Assault;
+
+                                if (OnPlayerLeftSquad != null)
+                                    await OnPlayerLeftSquad.Invoke((TPlayer)client, oldSquad);
+
+                                if (oldRole != GameRole.Assault)
+                                    if (OnPlayerChangedRole != null)
+                                        await OnPlayerChangedRole.Invoke((TPlayer)client, GameRole.Assault);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerChangedTeam:
+                    {
+                        if (stream.CanRead(8 + 1))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            Team team = (Team)stream.ReadInt8();
+
+                            if (resources.TryGetPlayer(steamID, out var client))
+                            {
+                                client.Team = team;
+                                if (OnPlayerChangedTeam != null)
+                                    await OnPlayerChangedTeam.Invoke((TPlayer)client, team);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerRequestingToSpawn:
+                    {
+                        if (stream.CanRead(2))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+
+                            var request = new PlayerSpawnRequest();
+                            request.Read(stream);
+
+                            if (resources.TryGetPlayer(steamID, out var client))
+                                if (this.OnPlayerSpawning != null)
+                                    request = await OnPlayerSpawning.Invoke((TPlayer)client, request);
+
+                            //Respond back.
+                            using (var response = Common.Serialization.Stream.Get())
+                            {
+                                response.Write((byte)NetworkCommuncation.SpawnPlayer);
+                                response.Write(steamID);
+                                request.Write(response);
+                                server.WriteToSocket(response);
+                            }
                         }
                         break;
                     }

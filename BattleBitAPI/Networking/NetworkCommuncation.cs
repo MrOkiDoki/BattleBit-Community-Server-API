@@ -9,6 +9,7 @@
 
         ExecuteCommand = 10,
         SendPlayerStats = 11,
+        SpawnPlayer = 12,
 
         PlayerConnected = 50,
         PlayerDisconnected = 51,
@@ -16,6 +17,11 @@
         OnPlayerKilledAnotherPlayer = 53,
         GetPlayerStats = 54,
         SavePlayerStats = 55,
-
+        OnPlayerAskingToChangeRole = 56,
+        OnPlayerChangedRole = 57,
+        OnPlayerJoinedASquad = 58,
+        OnPlayerLeftSquad = 59,
+        OnPlayerChangedTeam = 60,
+        OnPlayerRequestingToSpawn = 61,
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using System.Numerics;
-using BattleBitAPI.Common.Enums;
+using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
 using CommunityServerAPI.BattleBitAPI;
@@ -204,6 +203,14 @@ namespace BattleBitAPI.Server
             }
         }
 
+        // ---- Team ----
+        public IEnumerable<Player> GetAllPlayers()
+        {
+            var list = new List<Player>(254);
+            list.AddRange(this.mInternal.Players.Values);
+            return list;
+        }
+
         // ---- Functions ----
         public void WriteToSocket(Common.Serialization.Stream pck)
         {
@@ -335,6 +342,14 @@ namespace BattleBitAPI.Server
         public void MessageToPlayer(Player player, string msg)
         {
             MessageToPlayer(player.SteamID, msg);
+        }
+        public void SetRoleTo(ulong steamID, GameRole role)
+        {
+            ExecuteCommand("setrole " + steamID + " " + role);
+        }
+        public void SetRoleTo(Player player, GameRole role)
+        {
+            SetRoleTo(player.SteamID, role);
         }
 
         // ---- Closing ----

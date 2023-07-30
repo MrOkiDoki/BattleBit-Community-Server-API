@@ -1,13 +1,22 @@
-﻿using BattleBitAPI.Server;
+﻿using BattleBitAPI.Common;
+using BattleBitAPI.Server;
 using System.Numerics;
 
 namespace BattleBitAPI
 {
     public class Player
     {
-        public ulong SteamID { get; set; }
-        public string Name { get; set; }
-        public GameServer GameServer { get; set; }
+        public ulong SteamID { get; internal set; }
+        public string Name { get; internal set; }
+        public GameServer GameServer { get; internal set; }
+        public GameRole Role { get; internal set; }
+        public Team Team { get; internal set; }
+        public Squads Squad { get; internal set; }
+
+        internal virtual void OnInitialized()
+        {
+
+        }
 
         public void Kick(string reason = "")
         {
@@ -40,6 +49,10 @@ namespace BattleBitAPI
         public void Message(string msg)
         {
             this.GameServer.MessageToPlayer(this, msg);
+        }
+        public void SetNewRole(GameRole role)
+        {
+            this.GameServer.SetRoleTo(this, role);
         }
         public void Teleport(Vector3 target)
         {

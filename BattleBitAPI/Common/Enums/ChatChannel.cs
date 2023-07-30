@@ -1,4 +1,4 @@
-﻿namespace BattleBitAPI.Common.Enums
+﻿namespace BattleBitAPI.Common
 {
     public enum ChatChannel
     {

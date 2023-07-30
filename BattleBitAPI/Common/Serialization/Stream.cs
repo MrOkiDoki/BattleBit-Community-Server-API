@@ -182,6 +182,13 @@ namespace BattleBitAPI.Common.Serialization
             System.Array.Copy(source.Buffer, 0, this.Buffer, this.WritePosition, source.WritePosition);
             this.WritePosition += source.WritePosition;
         }
+        public void WriteStringItem(string value)
+        {
+            if (value == null)
+                this.Write("none");
+            else
+                this.Write(value);
+        }
 
         public unsafe void WriteAt(byte value, int position)
         {
@@ -624,13 +631,11 @@ namespace BattleBitAPI.Common.Serialization
             System.Array.Copy(this.Buffer, 0, data, 0, this.WritePosition);
             return data;
         }
-
         public void Reset()
         {
             this.ReadPosition = 0;
             this.WritePosition = 0;
         }
-
         public void Dispose()
         {
             if (InPool)

@@ -2,6 +2,9 @@
 {
     public class PlayerStats
     {
+        public PlayerStats() { }
+        public PlayerStats(byte[] data) { Load(data); }
+
         public bool IsBanned;
         public Roles Roles;
         public PlayerProgess Progress = new PlayerProgess();
@@ -61,6 +64,26 @@
 
             size = ser.ReadInt16();
             this.Selections = ser.ReadByteArray(size);
+        }
+
+        public byte[] SerializeToByteArray()
+        {
+            using (var ser = Common.Serialization.Stream.Get())
+            {
+                Write(ser);
+                return ser.AsByteArrayData();
+            }
+        }
+        public void Load(byte[] data)
+        {
+            var ser = new Common.Serialization.Stream()
+            {
+                Buffer = data,
+                InPool = false,
+                ReadPosition = 0,
+                WritePosition = data.Length,
+            };
+            Read(ser);
         }
 
         public class PlayerProgess
