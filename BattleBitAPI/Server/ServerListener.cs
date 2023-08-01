@@ -18,6 +18,11 @@ namespace BattleBitAPI.Server
 
         // --- Events --- 
         /// <summary>
+        /// Fired when game server is ticking (~100hz)<br/>
+        /// </summary>
+        public Func<GameServer, Task> OnGameServerTick { get; set; }
+
+        /// <summary>
         /// Fired when an attempt made to connect to the server.<br/>
         /// Default, any connection attempt will be accepted
         /// </summary>
@@ -193,6 +198,36 @@ namespace BattleBitAPI.Server
         /// Returns: The new spawn response
         /// </value>
         public Func<TPlayer, PlayerSpawnRequest, Task<PlayerSpawnRequest>> OnPlayerSpawning { get; set; }
+
+        /// <summary>
+        /// Fired when a player is spawns
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// </remarks>
+        public Func<TPlayer, Task> OnPlayerSpawned { get; set; }
+
+        /// <summary>
+        /// Fired when a player dies
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The player<br/>
+        /// </remarks>
+        public Func<TPlayer, Task> OnPlayerDied { get; set; }
+
+        /// <summary>
+        /// Fired when a player reports another player.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// TPlayer - The reporter player<br/>
+        /// TPlayer - The reported player<br/>
+        /// ReportReason - The reason of report<br/>
+        /// String - Additional detail<br/>
+        /// </remarks>
+        public Func<TPlayer, TPlayer, ReportReason, string, Task> OnPlayerReported { get; set; }
 
         // --- Private --- 
         private TcpListener mSocket;
@@ -460,6 +495,47 @@ namespace BattleBitAPI.Server
                         resources = new GameServer.mInternalResources();
                         server = new GameServer(client, resources, mExecutePackage, ip, gamePort, isPasswordProtected, serverName, gameMode, gamemap, size, dayNight, currentPlayers, queuePlayers, maxPlayers, loadingScreenText, serverRulesText);
 
+                        //Room settings
+                        {
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, 4, source.Token))
+                                throw new Exception("Unable to read the room size");
+                            int roomSize = (int)readStream.ReadUInt32();
+
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, roomSize, source.Token))
+                                throw new Exception("Unable to read the room");
+                            resources.Settings.Read(readStream);
+                        }
+
+                        //Map&gamemode rotation
+                        {
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, 4, source.Token))
+                                throw new Exception("Unable to read the map&gamemode rotation size");
+                            int rotationSize = (int)readStream.ReadUInt32();
+
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, rotationSize, source.Token))
+                                throw new Exception("Unable to read the map&gamemode");
+
+                            uint count = readStream.ReadUInt32();
+                            while (count > 0)
+                            {
+                                count--;
+                                if (readStream.TryReadString(out var item))
+                                    resources.MapRotation.Add(item.ToUpperInvariant());
+                            }
+
+                            count = readStream.ReadUInt32();
+                            while (count > 0)
+                            {
+                                count--;
+                                if (readStream.TryReadString(out var item))
+                                    resources.GamemodeRotation.Add(item);
+                            }
+                        }
+
                         //Client Count
                         int clientCount = 0;
                         {
@@ -530,16 +606,45 @@ namespace BattleBitAPI.Server
                                 role = (GameRole)readStream.ReadInt8();
                             }
 
+                            var loadout = new PlayerLoadout();
+                            var wearings = new PlayerWearings();
+
+                            //IsAlive
+                            bool isAlive;
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 1, source.Token))
+                                    throw new Exception("Unable to read the isAlive");
+                                isAlive = readStream.ReadBool();
+                            }
+
+                            //Loadout + Wearings
+                            if (isAlive)
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 4, source.Token))
+                                    throw new Exception("Unable to read the LoadoutSize");
+                                int loadoutSize = (int)readStream.ReadUInt32();
+
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, loadoutSize, source.Token))
+                                    throw new Exception("Unable to read the Loadout + Wearings");
+                                loadout.Read(readStream);
+                                wearings.Read(readStream);
+                            }
+
                             TPlayer player = Activator.CreateInstance<TPlayer>();
                             player.SteamID = steamid;
                             player.Name = username;
                             player.GameServer = server;
-
                             player.Team = team;
                             player.Squad = squad;
                             player.Role = role;
+                            player.IsAlive = isAlive;
+                            player.CurrentLoadout = loadout;
+                            player.CurrentWearings = wearings;
 
-                            player.OnInitialized();
+                            await player.OnInitialized();
 
                             resources.AddPlayer(player);
                         }
@@ -618,8 +723,10 @@ namespace BattleBitAPI.Server
             {
                 while (server.IsConnected)
                 {
+                    if (OnGameServerTick != null)
+                        await OnGameServerTick(server);
                     await server.Tick();
-                    await Task.Delay(1);
+                    await Task.Delay(10);
                 }
 
                 if (OnGameServerDisconnected != null && !server.ReconnectFlag)
@@ -658,7 +765,7 @@ namespace BattleBitAPI.Server
                                 player.Squad = squad;
                                 player.Role = role;
 
-                                player.OnInitialized();
+                                await player.OnInitialized();
 
                                 resources.AddPlayer(player);
                                 if (OnPlayerConnected != null)
@@ -858,6 +965,7 @@ namespace BattleBitAPI.Server
 
                             var request = new PlayerSpawnRequest();
                             request.Read(stream);
+                            ushort vehicleID = stream.ReadUInt16();
 
                             if (resources.TryGetPlayer(steamID, out var client))
                                 if (this.OnPlayerSpawning != null)
@@ -869,7 +977,108 @@ namespace BattleBitAPI.Server
                                 response.Write((byte)NetworkCommuncation.SpawnPlayer);
                                 response.Write(steamID);
                                 request.Write(response);
+                                response.Write(vehicleID);
                                 server.WriteToSocket(response);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerReport:
+                    {
+                        if (stream.CanRead(8 + 8 + 1 + 2))
+                        {
+                            ulong reporter = stream.ReadUInt64();
+                            ulong reported = stream.ReadUInt64();
+                            ReportReason reason = (ReportReason)stream.ReadInt8();
+                            stream.TryReadString(out var additionalInfo);
+
+                            if (resources.TryGetPlayer(reporter, out var reporterClient))
+                            {
+                                if (resources.TryGetPlayer(reported, out var reportedClient))
+                                {
+                                    if (OnPlayerReported != null)
+                                        await OnPlayerReported.Invoke((TPlayer)reporterClient, (TPlayer)reportedClient, reason, additionalInfo);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerSpawn:
+                    {
+                        if (stream.CanRead(8 + 2))
+                        {
+                            ulong reporter = stream.ReadUInt64();
+                            if (resources.TryGetPlayer(reporter, out var client))
+                            {
+                                var loadout = new PlayerLoadout();
+                                loadout.Read(stream);
+                                client.CurrentLoadout = loadout;
+
+                                var wearings = new PlayerWearings();
+                                wearings.Read(stream);
+                                client.CurrentWearings = wearings;
+
+                                client.IsAlive = true;
+
+                                await client.OnSpawned();
+
+                                if (OnPlayerSpawned != null)
+                                    await OnPlayerSpawned.Invoke((TPlayer)client);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerDie:
+                    {
+                        if (stream.CanRead(8))
+                        {
+                            ulong reporter = stream.ReadUInt64();
+                            if (resources.TryGetPlayer(reporter, out var client))
+                            {
+                                client.CurrentLoadout = new PlayerLoadout();
+                                client.CurrentWearings = new PlayerWearings();
+                                client.IsAlive = false;
+
+                                await client.OnDied();
+
+                                if (OnPlayerDied != null)
+                                    await OnPlayerDied.Invoke((TPlayer)client);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.NotifyNewMapRotation:
+                    {
+                        if (stream.CanRead(4))
+                        {
+                            uint count = stream.ReadUInt32();
+                            lock (resources.MapRotation)
+                            {
+                                resources.MapRotation.Clear();
+                                while (count > 0)
+                                {
+                                    count--;
+                                    if (stream.TryReadString(out var map))
+                                        resources.MapRotation.Add(map.ToUpperInvariant());
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.NotifyNewGamemodeRotation:
+                    {
+                        if (stream.CanRead(4))
+                        {
+                            uint count = stream.ReadUInt32();
+                            lock (resources.GamemodeRotation)
+                            {
+                                resources.GamemodeRotation.Clear();
+                                while (count > 0)
+                                {
+                                    count--;
+                                    if (stream.TryReadString(out var map))
+                                        resources.GamemodeRotation.Add(map);
+                                }
                             }
                         }
                         break;

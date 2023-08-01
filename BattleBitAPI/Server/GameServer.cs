@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
+using System.Text;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
@@ -30,6 +32,9 @@ namespace BattleBitAPI.Server
         public int MaxPlayers { get; private set; }
         public string LoadingScreenText { get; private set; }
         public string ServerRulesText { get; private set; }
+        public ServerSettings Settings { get; private set; }
+        public MapRotation MapRotation { get; private set; }
+        public GamemodeRotation GamemodeRotation { get; private set; }
 
         /// <summary>
         /// Reason why connection was terminated.
@@ -47,6 +52,7 @@ namespace BattleBitAPI.Server
         private long mLastPackageSent;
         private bool mIsDisposed;
         private mInternalResources mInternal;
+        private StringBuilder mBuilder;
 
         // ---- Constrction ---- 
         public GameServer(TcpClient socket, mInternalResources resources, Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> func, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
@@ -55,6 +61,7 @@ namespace BattleBitAPI.Server
             this.Socket = socket;
             this.mInternal = resources;
             this.mExecutionFunc = func;
+            this.mBuilder = new StringBuilder(1024);
 
             this.GameIP = iP;
             this.GamePort = port;
@@ -94,7 +101,10 @@ namespace BattleBitAPI.Server
             this.mLastPackageReceived = Extentions.TickCount;
             this.mLastPackageSent = Extentions.TickCount;
 
-            this.ServerHash = (ulong)(port << 32) | iP.ToUInt();
+            this.ServerHash = ((ulong)port << 32) | (ulong)iP.ToUInt();
+            this.Settings = new ServerSettings(resources);
+            this.MapRotation = new MapRotation(resources);
+            this.GamemodeRotation = new GamemodeRotation(resources);
         }
 
         // ---- Tick ----
@@ -104,6 +114,47 @@ namespace BattleBitAPI.Server
                 return;
             if (this.mIsDisposed)
                 return;
+
+            if (this.mInternal.IsDirtySettings)
+            {
+                this.mInternal.IsDirtySettings = false;
+
+                //Send new settings
+                using (var pck = Common.Serialization.Stream.Get())
+                {
+                    pck.Write((byte)NetworkCommuncation.SetNewRoomSettings);
+                    this.mInternal.Settings.Write(pck);
+                    WriteToSocket(pck);
+                }
+            }
+            if (this.mInternal.MapRotationDirty)
+            {
+                this.mInternal.MapRotationDirty = false;
+                this.mBuilder.Clear();
+
+                this.mBuilder.Append("setmaprotation ");
+                lock (this.mInternal.MapRotation)
+                    foreach (var map in this.mInternal.MapRotation)
+                    {
+                        this.mBuilder.Append(map);
+                        this.mBuilder.Append(',');
+                    }
+                this.ExecuteCommand(this.mBuilder.ToString());
+            }
+            if (this.mInternal.GamemodeRotationDirty)
+            {
+                this.mInternal.GamemodeRotationDirty = false;
+                this.mBuilder.Clear();
+
+                this.mBuilder.Append("setgamemoderotation ");
+                lock (this.mInternal.GamemodeRotation)
+                    foreach (var gamemode in this.mInternal.GamemodeRotation)
+                    {
+                        this.mBuilder.Append(gamemode);
+                        this.mBuilder.Append(',');
+                    }
+                this.ExecuteCommand(this.mBuilder.ToString());
+            }
 
             try
             {
@@ -351,6 +402,34 @@ namespace BattleBitAPI.Server
         {
             SetRoleTo(player.SteamID, role);
         }
+        public void SpawnPlayer(ulong steamID, PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
+        {
+            var request = new PlayerSpawnRequest()
+            {
+                Loadout = loadout,
+                Wearings = wearings,
+                RequestedPoint = PlayerSpawningPosition.Null,
+                SpawnPosition = position,
+                LookDirection = lookDirection,
+                SpawnStand = stand,
+                SpawnProtection = spawnProtection
+            };
+
+            //Respond back.
+            using (var response = Common.Serialization.Stream.Get())
+            {
+                response.Write((byte)NetworkCommuncation.SpawnPlayer);
+                response.Write(steamID);
+                request.Write(response);
+                response.Write((ushort)0);
+
+                WriteToSocket(response);
+            }
+        }
+        public void SpawnPlayer(Player player, PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
+        {
+            SpawnPlayer(player.SteamID, loadout, wearings, position, lookDirection, stand, spawnProtection);
+        }
 
         // ---- Closing ----
         private void mClose(string reason)
@@ -401,6 +480,15 @@ namespace BattleBitAPI.Server
         {
             public Dictionary<ulong, Player> Players = new Dictionary<ulong, Player>(254);
 
+            public mRoomSettings Settings = new mRoomSettings();
+            public bool IsDirtySettings;
+
+            public HashSet<string> MapRotation = new HashSet<string>(8);
+            public bool MapRotationDirty = false;
+
+            public HashSet<string> GamemodeRotation = new HashSet<string>(8);
+            public bool GamemodeRotationDirty = false;
+
             public void AddPlayer<TPlayer>(TPlayer player) where TPlayer : Player
             {
                 lock (Players)
@@ -418,6 +506,57 @@ namespace BattleBitAPI.Server
             {
                 lock (Players)
                     return Players.TryGetValue(steamID, out result);
+            }
+        }
+        public class mRoomSettings
+        {
+            public float DamageMultiplier = 1.0f;
+            public bool BleedingEnabled = true;
+            public bool StamineEnabled = false;
+            public bool FriendlyFireEnabled = false;
+            public bool HideMapVotes = true;
+            public bool OnlyWinnerTeamCanVote = false;
+            public bool HitMarkersEnabled = true;
+            public bool PointLogEnabled = true;
+            public bool SpectatorEnabled = true;
+
+            public byte MedicLimitPerSquad = 8;
+            public byte EngineerLimitPerSquad = 8;
+            public byte SupportLimitPerSquad = 8;
+            public byte ReconLimitPerSquad = 8;
+
+            public void Write(Common.Serialization.Stream ser)
+            {
+                ser.Write(this.DamageMultiplier);
+                ser.Write(this.BleedingEnabled);
+                ser.Write(this.StamineEnabled);
+                ser.Write(this.FriendlyFireEnabled);
+                ser.Write(this.HideMapVotes);
+                ser.Write(this.OnlyWinnerTeamCanVote);
+                ser.Write(this.HitMarkersEnabled);
+                ser.Write(this.PointLogEnabled);
+                ser.Write(this.SpectatorEnabled);
+                ser.Write(this.MedicLimitPerSquad);
+                ser.Write(this.EngineerLimitPerSquad);
+                ser.Write(this.SupportLimitPerSquad);
+                ser.Write(this.ReconLimitPerSquad);
+            }
+            public void Read(Common.Serialization.Stream ser)
+            {
+                this.DamageMultiplier = ser.ReadFloat();
+                this.BleedingEnabled = ser.ReadBool();
+                this.StamineEnabled = ser.ReadBool();
+                this.FriendlyFireEnabled = ser.ReadBool();
+                this.HideMapVotes = ser.ReadBool();
+                this.OnlyWinnerTeamCanVote = ser.ReadBool();
+                this.HitMarkersEnabled = ser.ReadBool();
+                this.PointLogEnabled = ser.ReadBool();
+                this.SpectatorEnabled = ser.ReadBool();
+
+                this.MedicLimitPerSquad = ser.ReadInt8();
+                this.EngineerLimitPerSquad = ser.ReadInt8();
+                this.SupportLimitPerSquad = ser.ReadInt8();
+                this.ReconLimitPerSquad = ser.ReadInt8();
             }
         }
     }

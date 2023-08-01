@@ -12,8 +12,19 @@ namespace BattleBitAPI
         public GameRole Role { get; internal set; }
         public Team Team { get; internal set; }
         public Squads Squad { get; internal set; }
+        public bool IsAlive { get; internal set; }
+        public PlayerLoadout CurrentLoadout { get; internal set; } = new PlayerLoadout();
+        public PlayerWearings CurrentWearings { get; internal set; } = new PlayerWearings();
 
-        internal virtual void OnInitialized()
+        internal virtual async Task OnInitialized()
+        {
+
+        }
+        internal virtual async Task OnSpawned()
+        {
+
+        }
+        internal virtual async Task OnDied()
         {
 
         }
@@ -57,6 +68,10 @@ namespace BattleBitAPI
         public void Teleport(Vector3 target)
         {
 
+        }
+        public void SpawnPlayer(PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
+        {
+            GameServer.SpawnPlayer(this, loadout, wearings, position, lookDirection, stand, spawnProtection);
         }
 
         public override string ToString()

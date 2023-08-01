@@ -10,6 +10,7 @@
         ExecuteCommand = 10,
         SendPlayerStats = 11,
         SpawnPlayer = 12,
+        SetNewRoomSettings = 13,
 
         PlayerConnected = 50,
         PlayerDisconnected = 51,
@@ -23,5 +24,10 @@
         OnPlayerLeftSquad = 59,
         OnPlayerChangedTeam = 60,
         OnPlayerRequestingToSpawn = 61,
+        OnPlayerReport = 62,
+        OnPlayerSpawn = 63,
+        OnPlayerDie = 64,
+        NotifyNewMapRotation = 65,
+        NotifyNewGamemodeRotation = 66,
     }
 }
