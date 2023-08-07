@@ -1,20 +1,20 @@
-# BattleBit Remastered Community Server API
+# BBR服务器API
 
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
  
-This repository provides an API that can be used to handle events on your community server(s) and manipulate them.
+这个是BBR（像素战地）的服务端API
 
-## Getting started
+## 如何开始
 
-### Prerequisites
+### 系统需求
 
-- Your own community server within BattleBit Remastered with progression **disabled** and access to its launch options.
-- The ability to write and compile [.NET 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) C# code.
-- (for production) A place to host this API on.
+- 拥有 BBR 服务端的开服权限，且满足开服条件。
+- 可以写基于 [.NET 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) 的 C# 代码.
+- 生产环境中可以部署此代码.
 
-### Writing
+### 如何制作功能
 
-Documentation and examples can be found on the [wiki](https://github.com/MrOkiDoki/BattleBit-Community-Server-API/wiki).
+查看维基 [此页面](https://github.com/MrOkiDoki/BattleBit-Community-Server-API/wiki).
 
 
 The way to use this API is to make an instance of `ServerListener` and add your own handlers to certain events that happen on your server(s).
