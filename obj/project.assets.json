@@ -8,19 +8,19 @@
     "net6.0": []
   },
   "packageFolders": {
-    "C:\\Users\\notfail\\.nuget\\packages\\": {}
+    "C:\\Users\\Oki\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\repos\\battlebit\\CommunityAPI\\CommunityServerAPI.csproj",
+      "projectUniqueName": "C:\\BattleBit\\BattleBitRemastered\\Servers\\CommunityServerAPI\\BattleBit-Community-Server-API\\CommunityServerAPI.csproj",
       "projectName": "CommunityServerAPI",
-      "projectPath": "D:\\repos\\battlebit\\CommunityAPI\\CommunityServerAPI.csproj",
-      "packagesPath": "C:\\Users\\notfail\\.nuget\\packages\\",
-      "outputPath": "D:\\repos\\battlebit\\CommunityAPI\\obj\\",
+      "projectPath": "C:\\BattleBit\\BattleBitRemastered\\Servers\\CommunityServerAPI\\BattleBit-Community-Server-API\\CommunityServerAPI.csproj",
+      "packagesPath": "C:\\Users\\Oki\\.nuget\\packages\\",
+      "outputPath": "C:\\BattleBit\\BattleBitRemastered\\Servers\\CommunityServerAPI\\BattleBit-Community-Server-API\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\notfail\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Oki\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -56,30 +56,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[6.0.15, 6.0.15]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[6.0.15, 6.0.15]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[6.0.15, 6.0.15]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[6.0.15, 6.0.15]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.202\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.201\\RuntimeIdentifierGraph.json"
       }
     }
   }

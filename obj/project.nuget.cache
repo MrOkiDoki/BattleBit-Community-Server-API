@@ -1,13 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "TIgvbarIBImeWO/dRuIof5UqXcjh4EueyEdyEhjQrb0slOU5ZWnsz15fjd/eBP9Z+v9EwI2cV1FiGobOQgN8bw==",
+  "dgSpecHash": "pUUV0vYUBKisP9wHLyg+4LLgPpJ6nV59j98jNphsryg3WNDca7+wrgNUZlRnXogF4/FlbIby2tBboJ+SQRQCGA==",
   "success": true,
-  "projectFilePath": "D:\\repos\\battlebit\\CommunityAPI\\CommunityServerAPI.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\notfail\\.nuget\\packages\\microsoft.netcore.app.ref\\6.0.15\\microsoft.netcore.app.ref.6.0.15.nupkg.sha512",
-    "C:\\Users\\notfail\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\6.0.15\\microsoft.windowsdesktop.app.ref.6.0.15.nupkg.sha512",
-    "C:\\Users\\notfail\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\6.0.15\\microsoft.aspnetcore.app.ref.6.0.15.nupkg.sha512",
-    "C:\\Users\\notfail\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\6.0.15\\microsoft.netcore.app.host.win-x64.6.0.15.nupkg.sha512"
-  ],
+  "projectFilePath": "C:\\BattleBit\\BattleBitRemastered\\Servers\\CommunityServerAPI\\BattleBit-Community-Server-API\\CommunityServerAPI.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }
