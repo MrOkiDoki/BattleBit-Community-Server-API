@@ -8,4 +8,4 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = CommunityServerAPI
-build_property.ProjectDir = D:\repos\battlebit\CommunityAPI\
+build_property.ProjectDir = C:\BattleBit\BattleBitRemastered\Servers\CommunityServerAPI\BattleBit-Community-Server-API\
