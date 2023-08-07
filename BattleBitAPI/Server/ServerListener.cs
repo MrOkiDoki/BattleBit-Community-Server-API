@@ -3,8 +3,8 @@ using System.Net.Sockets;
 using System.Numerics;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
-using BattleBitAPI.Common.Serialization;
 using BattleBitAPI.Networking;
+using BattleBitAPI.Server.EventArgs;
 using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
@@ -26,15 +26,7 @@ namespace BattleBitAPI.Server
         /// Fired when an attempt made to connect to the server.<br/>
         /// Default, any connection attempt will be accepted
         /// </summary>
-        /// 
-        /// <remarks>
-        /// IPAddress: IP of incoming connection <br/>
-        /// </remarks>
-        /// 
-        /// <value>
-        /// Returns: true if allow connection, false if deny the connection.
-        /// </value>
-        public Func<IPAddress, Task<bool>> OnGameServerConnecting { get; set; }
+        public Func<GameServerConnectingEventArgs, Task> OnGameServerConnecting { get; set; }
 
         /// <summary>
         /// Fired when a game server connects.
@@ -86,118 +78,52 @@ namespace BattleBitAPI.Server
         /// <summary>
         /// Fired when a player types a message to text chat.<br/>
         /// </summary>
-        /// 
-        /// <remarks>
-        /// Player: The player that typed the message <br/>
-        /// ChatChannel: The channel the message was sent <br/>
-        /// string - Message: The message<br/>
-        /// </remarks>
-        public Func<TPlayer, ChatChannel, string, Task> OnPlayerTypedMessage { get; set; }
+        public Func<PlayerTypedMessageEventArgs<TPlayer>, Task> OnPlayerTypedMessage { get; set; }
 
         /// <summary>
         /// Fired when a player kills another player.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// Player: The killer player<br/>
-        /// Vector3: The position of killer<br/>
-        /// Player: The target player that got killed<br/>
-        /// Vector3: The target player's position<br/>
-        /// string - Tool: The tool user to kill the player<br/>
-        /// </remarks>
-        public Func<TPlayer, Vector3, TPlayer, Vector3, string, Task> OnAPlayerKilledAnotherPlayer { get; set; }
+        public Func<PlayerKilledPlayerEventArgs<TPlayer>, Task> OnAPlayerKilledAnotherPlayer { get; set; }
 
         /// <summary>
         /// Fired when game server requests the stats of a player, this function should return in 3000ms or player will not able to join to server.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// ulong - SteamID of the player<br/>
-        /// PlayerStats - The official stats of the player<br/>
-        /// </remarks>
-        /// <value>
-        /// Returns: The modified stats of the player.
-        /// </value>
-        public Func<ulong, PlayerStats, Task<PlayerStats>> OnGetPlayerStats { get; set; }
+        public Func<GetPlayerStatsEventArgs, Task> OnGetPlayerStats { get; set; }
 
         /// <summary>
         /// Fired when game server requests to save the stats of a player.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// ulong - SteamID of the player<br/>
-        /// PlayerStats - Stats of the player<br/>
-        /// </remarks>
-        /// <value>
-        /// Returns: The stats of the player.
-        /// </value>
-        public Func<ulong, PlayerStats, Task> OnSavePlayerStats { get; set; }
+        public Func<SavingPlayerStatsEventArgs, Task> OnSavePlayerStats { get; set; }
 
         /// <summary>
         /// Fired when a player requests server to change role.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The player requesting<br/>
-        /// GameRole - The role the player asking to change<br/>
-        /// </remarks>
-        /// <value>
-        /// Returns: True if you accept if, false if you don't.
-        /// </value>
-        public Func<TPlayer, GameRole, Task<bool>> OnPlayerRequestingToChangeRole { get; set; }
+        public Func<PlayerRequestingToChangeRoleEventArgs<TPlayer>, Task> OnPlayerRequestingToChangeRole { get; set; }
 
         /// <summary>
         /// Fired when a player changes their game role.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The player<br/>
-        /// GameRole - The new role of the player<br/>
-        /// </remarks>
-        public Func<TPlayer, GameRole, Task> OnPlayerChangedRole { get; set; }
+        public Func<PlayerChangedRoleEventArgs<TPlayer>, Task> OnPlayerChangedRole { get; set; }
 
         /// <summary>
         /// Fired when a player joins a squad.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The player<br/>
-        /// Squads - The squad player joined<br/>
-        /// </remarks>
-        public Func<TPlayer, Squads, Task> OnPlayerJoinedASquad { get; set; }
+        public Func<PlayerJoinedSquadEventArgs<TPlayer>, Task> OnPlayerJoinedASquad { get; set; }
 
         /// <summary>
         /// Fired when a player leaves their squad.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The player<br/>
-        /// Squads - The squad that player left<br/>
-        /// </remarks>
-        public Func<TPlayer, Squads, Task> OnPlayerLeftSquad { get; set; }
+        public Func<PlayerLeftSquadEventArgs<TPlayer>, Task> OnPlayerLeftSquad { get; set; }
 
         /// <summary>
         /// Fired when a player changes team.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The player<br/>
-        /// Team - The new team that player joined<br/>
-        /// </remarks>
-        public Func<TPlayer, Team, Task> OnPlayerChangedTeam { get; set; }
+        public Func<PlayerChangedTeamEventArgs<TPlayer>, Task> OnPlayerChangedTeam { get; set; }
 
         /// <summary>
         /// Fired when a player is spawning.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The player<br/>
-        /// PlayerSpawnRequest - The request<br/>
-        /// </remarks>
-        /// <value>
-        /// Returns: The new spawn response
-        /// </value>
-        public Func<TPlayer, PlayerSpawnRequest, Task<PlayerSpawnRequest>> OnPlayerSpawning { get; set; }
+        public Func<PlayerSpawningEventArgs<TPlayer>, Task> OnPlayerSpawning { get; set; }
 
         /// <summary>
         /// Fired when a player is spawns
@@ -220,24 +146,11 @@ namespace BattleBitAPI.Server
         /// <summary>
         /// Fired when a player reports another player.
         /// </summary>
-        /// 
-        /// <remarks>
-        /// TPlayer - The reporter player<br/>
-        /// TPlayer - The reported player<br/>
-        /// ReportReason - The reason of report<br/>
-        /// String - Additional detail<br/>
-        /// </remarks>
-        public Func<TPlayer, TPlayer, ReportReason, string, Task> OnPlayerReported { get; set; }
+        public Func<PlayerReportedEventArgs<TPlayer>, Task> OnPlayerReported { get; set; }
 
         // --- Private --- 
         private TcpListener mSocket;
-        private Dictionary<ulong, GameServer> mActiveConnections;
-
-        // --- Construction --- 
-        public ServerListener()
-        {
-            this.mActiveConnections = new Dictionary<ulong, GameServer>(16);
-        }
+        private Dictionary<ulong, GameServer> mActiveConnections = new(16);
 
         // --- Starting ---
         public void Start(IPAddress bindIP, int port)
@@ -290,13 +203,18 @@ namespace BattleBitAPI.Server
                 mInternalOnClientConnecting(client);
             }
         }
+
         private async Task mInternalOnClientConnecting(TcpClient client)
         {
             var ip = (client.Client.RemoteEndPoint as IPEndPoint).Address;
 
             bool allow = true;
             if (OnGameServerConnecting != null)
-                allow = await OnGameServerConnecting(ip);
+            {
+                var args = new GameServerConnectingEventArgs(ip);
+                await OnGameServerConnecting(args);
+                allow = args.Allow;
+            }
 
             if (!allow)
             {
@@ -804,7 +722,7 @@ namespace BattleBitAPI.Server
                                 if (stream.TryReadString(out var msg))
                                 {
                                     if (OnPlayerTypedMessage != null)
-                                        await OnPlayerTypedMessage.Invoke((TPlayer)player, chat, msg);
+                                        await OnPlayerTypedMessage.Invoke(new PlayerTypedMessageEventArgs<TPlayer>((TPlayer)player, chat, msg));
                                 }
                             }
                         }
@@ -825,7 +743,7 @@ namespace BattleBitAPI.Server
                                 if (resources.TryGetPlayer(killer, out var killerClient))
                                     if (resources.TryGetPlayer(victim, out var victimClient))
                                         if (OnAPlayerKilledAnotherPlayer != null)
-                                            await OnAPlayerKilledAnotherPlayer.Invoke((TPlayer)killerClient, killerPos, (TPlayer)victimClient, victimPos, tool);
+                                            await OnAPlayerKilledAnotherPlayer.Invoke(new PlayerKilledPlayerEventArgs<TPlayer>((TPlayer)killerClient, killerPos, (TPlayer)victimClient, victimPos, tool));
                             }
                         }
 
@@ -841,7 +759,11 @@ namespace BattleBitAPI.Server
                             stats.Read(stream);
 
                             if (OnGetPlayerStats != null)
-                                stats = await OnGetPlayerStats.Invoke(steamID, stats);
+                            {
+                                var args = new GetPlayerStatsEventArgs(steamID, stats);
+                                await OnGetPlayerStats.Invoke(args);
+                                stats = args.PlayerStats;
+                            }
 
                             using (var response = Common.Serialization.Stream.Get())
                             {
@@ -862,7 +784,7 @@ namespace BattleBitAPI.Server
                             stats.Read(stream);
 
                             if (OnSavePlayerStats != null)
-                                await OnSavePlayerStats.Invoke(steamID, stats);
+                                await OnSavePlayerStats.Invoke(new SavingPlayerStatsEventArgs(steamID, stats));
                         }
                         break;
                     }
@@ -878,7 +800,11 @@ namespace BattleBitAPI.Server
                                 bool accepted = true;
 
                                 if (OnPlayerRequestingToChangeRole != null)
-                                    accepted = await OnPlayerRequestingToChangeRole.Invoke((TPlayer)client, role);
+                                {
+                                    var args = new PlayerRequestingToChangeRoleEventArgs<TPlayer>((TPlayer)client, role);
+                                    await OnPlayerRequestingToChangeRole.Invoke(args);
+                                    accepted = args.Allow;
+                                }
 
                                 if (accepted)
                                     server.SetRoleTo(steamID, role);
@@ -897,7 +823,7 @@ namespace BattleBitAPI.Server
                             {
                                 client.Role = role;
                                 if (OnPlayerChangedRole != null)
-                                    await OnPlayerChangedRole.Invoke((TPlayer)client, role);
+                                    await OnPlayerChangedRole.Invoke(new PlayerChangedRoleEventArgs<TPlayer>((TPlayer)client, role));
                             }
                         }
                         break;
@@ -913,7 +839,7 @@ namespace BattleBitAPI.Server
                             {
                                 client.Squad = squad;
                                 if (OnPlayerJoinedASquad != null)
-                                    await OnPlayerJoinedASquad.Invoke((TPlayer)client, squad);
+                                    await OnPlayerJoinedASquad.Invoke(new PlayerJoinedSquadEventArgs<TPlayer>((TPlayer)client, squad));
                             }
                         }
                         break;
@@ -932,11 +858,11 @@ namespace BattleBitAPI.Server
                                 client.Role = GameRole.Assault;
 
                                 if (OnPlayerLeftSquad != null)
-                                    await OnPlayerLeftSquad.Invoke((TPlayer)client, oldSquad);
+                                    await OnPlayerLeftSquad.Invoke(new PlayerLeftSquadEventArgs<TPlayer>((TPlayer)client, oldSquad));
 
                                 if (oldRole != GameRole.Assault)
                                     if (OnPlayerChangedRole != null)
-                                        await OnPlayerChangedRole.Invoke((TPlayer)client, GameRole.Assault);
+                                        await OnPlayerChangedRole.Invoke(new PlayerChangedRoleEventArgs<TPlayer>((TPlayer)client, GameRole.Assault));
                             }
                         }
                         break;
@@ -952,7 +878,7 @@ namespace BattleBitAPI.Server
                             {
                                 client.Team = team;
                                 if (OnPlayerChangedTeam != null)
-                                    await OnPlayerChangedTeam.Invoke((TPlayer)client, team);
+                                    await OnPlayerChangedTeam.Invoke(new PlayerChangedTeamEventArgs<TPlayer>((TPlayer)client, team));
                             }
                         }
                         break;
@@ -968,8 +894,12 @@ namespace BattleBitAPI.Server
                             ushort vehicleID = stream.ReadUInt16();
 
                             if (resources.TryGetPlayer(steamID, out var client))
-                                if (this.OnPlayerSpawning != null)
-                                    request = await OnPlayerSpawning.Invoke((TPlayer)client, request);
+                                if (OnPlayerSpawning != null)
+                                {
+                                    var args = new PlayerSpawningEventArgs<TPlayer>((TPlayer)client, request);
+                                    await OnPlayerSpawning.Invoke(args);
+                                    request = args.Request;
+                                }
 
                             //Respond back.
                             using (var response = Common.Serialization.Stream.Get())
@@ -997,7 +927,7 @@ namespace BattleBitAPI.Server
                                 if (resources.TryGetPlayer(reported, out var reportedClient))
                                 {
                                     if (OnPlayerReported != null)
-                                        await OnPlayerReported.Invoke((TPlayer)reporterClient, (TPlayer)reportedClient, reason, additionalInfo);
+                                        await OnPlayerReported.Invoke(new PlayerReportedEventArgs<TPlayer>((TPlayer)reporterClient, (TPlayer)reportedClient, reason, additionalInfo));
                                 }
                             }
                         }
