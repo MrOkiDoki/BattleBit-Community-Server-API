@@ -16,14 +16,15 @@
 
 查看维基 [此页面](https://github.com/MrOkiDoki/BattleBit-Community-Server-API/wiki).
 
+使用这个 API 将开启一个`ServerListener` 的监听进程，来了解你的服务端中正在发生什么。
+如果想给你的服务端添加功能，可以直接把功能写在 `Program.cs` 中，当然也可以按照框架规范进行其他的功能纂写。
 
-The way to use this API is to make an instance of `ServerListener` and add your own handlers to certain events that happen on your server(s).
-The easiest way to do this, is to add/put your own code in `Program.cs` and then build the project.
 
-### Building
+### 编译
 
-This project can either be built by using [`dotnet build`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build) on the command-line or by using the run / build options inside your preferred IDE.
+可以直接使用 [`dotnet build`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build) 的命令进行编译，或者在你的 VSC 等 IDE 中自定义编译.
 
-### Connecting to the gameserver
+### 连接服务端
 
-After writing and compiling this project. You will want to host it somewhere. This could be on the same server that the gameserver runs on, or somewhere completely different. We do recommend to keep the latency to the gameserver minimal for smoother and faster communication. The same `ServerListener` can be used for *multiple* gameservers at the same time. You can specify the API server (address & port) in the launch options of the gameserver.
+当你将此项目的功能写完并进行了编译后，需要将此 API 进行部署。此服务可以部署在本地网络、本机网络或者广域网中。我们强烈建议以「最低延迟」为基准进行部署，以保证 `ServerListener` 可以同时监听*多个*游戏服务端。
+你可以在游戏服务端的启动配置文件中对 API 的地址和端口进行设定。
