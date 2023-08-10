@@ -11,6 +11,7 @@
         SendPlayerStats = 11,
         SpawnPlayer = 12,
         SetNewRoomSettings = 13,
+        RespondPlayerMessage = 14,
 
         PlayerConnected = 50,
         PlayerDisconnected = 51,

@@ -92,7 +92,10 @@ namespace BattleBitAPI.Server
         /// ChatChannel: The channel the message was sent <br/>
         /// string - Message: The message<br/>
         /// </remarks>
-        public Func<TPlayer, ChatChannel, string, Task> OnPlayerTypedMessage { get; set; }
+        /// <value>
+        /// Returns: True if you let the message broadcasted, false if you don't it to be broadcasted.
+        /// </value>
+        public Func<TPlayer, ChatChannel, string, Task<bool>> OnPlayerTypedMessage { get; set; }
 
         /// <summary>
         /// Fired when a player kills another player.
@@ -794,8 +797,9 @@ namespace BattleBitAPI.Server
                     }
                 case NetworkCommuncation.OnPlayerTypedMessage:
                     {
-                        if (stream.CanRead(8 + 1 + 2))
+                        if (stream.CanRead(2 + 8 + 1 + 2))
                         {
+                            ushort messageID = stream.ReadUInt16();
                             ulong steamID = stream.ReadUInt64();
 
                             if (resources.TryGetPlayer(steamID, out var player))
@@ -803,8 +807,18 @@ namespace BattleBitAPI.Server
                                 ChatChannel chat = (ChatChannel)stream.ReadInt8();
                                 if (stream.TryReadString(out var msg))
                                 {
+                                    bool pass = true;
                                     if (OnPlayerTypedMessage != null)
-                                        await OnPlayerTypedMessage.Invoke((TPlayer)player, chat, msg);
+                                        pass = await OnPlayerTypedMessage.Invoke((TPlayer)player, chat, msg);
+
+                                    //Respond back.
+                                    using (var response = Common.Serialization.Stream.Get())
+                                    {
+                                        response.Write((byte)NetworkCommuncation.RespondPlayerMessage);
+                                        response.Write(messageID);
+                                        response.Write(pass);
+                                        server.WriteToSocket(response);
+                                    }
                                 }
                             }
                         }

@@ -14,10 +14,10 @@ namespace BattleBitAPI.Server
         // ---- Public Variables ---- 
         public TcpClient Socket { get; private set; }
 
+        public ulong ServerHash { get; private set; }
         /// <summary>
         /// Is game server connected to our server?
         /// </summary>
-        public ulong ServerHash { get; private set; }
         public bool IsConnected { get; private set; }
         public IPAddress GameIP { get; private set; }
         public int GamePort { get; private set; }
@@ -54,7 +54,7 @@ namespace BattleBitAPI.Server
         private mInternalResources mInternal;
         private StringBuilder mBuilder;
 
-        // ---- Constrction ---- 
+        // ---- Construction ---- 
         public GameServer(TcpClient socket, mInternalResources resources, Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> func, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
         {
             this.IsConnected = true;

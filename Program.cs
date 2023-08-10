@@ -1,7 +1,9 @@
 ﻿using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
-using BattleBitAPI.Storage;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Numerics;
 
 class Program
@@ -9,21 +11,32 @@ class Program
     static void Main(string[] args)
     {
         var listener = new ServerListener<MyPlayer>();
-        listener.OnGameServerTick += OnGameServerTick;
-        listener.Start(29294);//Port
+        listener.Start(29294);
+
+        listener.OnPlayerTypedMessage += OnPlayerTypedMessage;
+
         Thread.Sleep(-1);
     }
 
-    private static async Task OnGameServerTick(GameServer server)
+    private static async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel ch, string msg)
     {
-        //server.Settings.SpectatorEnabled = !server.Settings.SpectatorEnabled;
-        //server.MapRotation.AddToRotation("DustyDew");
-        //server.MapRotation.AddToRotation("District");
-        //server.GamemodeRotation.AddToRotation("CONQ");
-        //server.ForceEndGame();
+        if (msg == "nword")
+        {
+            player.NumberOfNWord++;
+            if (player.NumberOfNWord > 4)
+            {
+                player.Kick("N word is not accepted!");
+            }
+            else
+            {
+                player.Message("Do not type nword, this is your " + player.NumberOfNWord + "th warning");
+            }
+            return false;
+        }
+        return true;
     }
 }
 class MyPlayer : Player
 {
-    
+    public int NumberOfNWord;
 }
