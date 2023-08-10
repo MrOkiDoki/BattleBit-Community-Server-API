@@ -1,5 +1,6 @@
 ﻿using BattleBitAPI.Common;
 using BattleBitAPI.Server;
+using System.Net;
 using System.Numerics;
 
 namespace BattleBitAPI
@@ -8,6 +9,7 @@ namespace BattleBitAPI
     {
         public ulong SteamID { get; internal set; }
         public string Name { get; internal set; }
+        public IPAddress IP { get; internal set; }
         public GameServer GameServer { get; internal set; }
         public GameRole Role { get; internal set; }
         public Team Team { get; internal set; }

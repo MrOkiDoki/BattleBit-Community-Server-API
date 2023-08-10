@@ -53,6 +53,7 @@ namespace BattleBitAPI.Server
         private bool mIsDisposed;
         private mInternalResources mInternal;
         private StringBuilder mBuilder;
+        private bool mWantsToCloseConnection;
 
         // ---- Construction ---- 
         public GameServer(TcpClient socket, mInternalResources resources, Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> func, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
@@ -162,6 +163,13 @@ namespace BattleBitAPI.Server
                 if (!Socket.Connected)
                 {
                     mClose("Connection was terminated.");
+                    return;
+                }
+
+                //Did user requested to close connection?
+                if (this.mWantsToCloseConnection)
+                {
+                    mClose(this.TerminationReason);
                     return;
                 }
 
@@ -432,6 +440,14 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Closing ----
+        public void CloseConnection(string additionInfo = string.Empty)
+        {
+            if (string.IsNullOrWhiteSpace(additionInfo))
+                this.TerminationReason = additionInfo;
+            else
+                this.TerminationReason = "User requested to terminate the connection";
+            this.mWantsToCloseConnection = true;
+        }
         private void mClose(string reason)
         {
             if (this.IsConnected)
@@ -474,6 +490,8 @@ namespace BattleBitAPI.Server
                 this.GameIP + ":" + this.GamePort + " - " +
                 this.ServerName;
         }
+
+
 
         // ---- Internal ----
         public class mInternalResources

@@ -578,6 +578,14 @@ namespace BattleBitAPI.Server
                                 }
                             }
 
+                            uint ipHash = 0;
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 4, source.Token))
+                                    throw new Exception("Unable to read the ip");
+                                ipHash = readStream.ReadUInt32();
+                            }
+
                             //Team
                             Team team;
                             {
@@ -635,6 +643,7 @@ namespace BattleBitAPI.Server
                             TPlayer player = Activator.CreateInstance<TPlayer>();
                             player.SteamID = steamid;
                             player.Name = username;
+                            player.IP = new IPAddress(ipHash);
                             player.GameServer = server;
                             player.Team = team;
                             player.Squad = squad;
@@ -746,11 +755,12 @@ namespace BattleBitAPI.Server
             {
                 case NetworkCommuncation.PlayerConnected:
                     {
-                        if (stream.CanRead(8 + 2 + (1 + 1 + 1)))
+                        if (stream.CanRead(8 + 2 + 4 + (1 + 1 + 1)))
                         {
                             ulong steamID = stream.ReadUInt64();
                             if (stream.TryReadString(out var username))
                             {
+                                uint ip = stream.ReadUInt32();
                                 Team team = (Team)stream.ReadInt8();
                                 Squads squad = (Squads)stream.ReadInt8();
                                 GameRole role = (GameRole)stream.ReadInt8();
@@ -758,6 +768,7 @@ namespace BattleBitAPI.Server
                                 TPlayer player = Activator.CreateInstance<TPlayer>();
                                 player.SteamID = steamID;
                                 player.Name = username;
+                                player.IP = new IPAddress(ip);
                                 player.GameServer = server;
 
                                 player.Team = team;
