@@ -102,13 +102,9 @@ namespace BattleBitAPI.Server
         /// </summary>
         /// 
         /// <remarks>
-        /// Player: The killer player<br/>
-        /// Vector3: The position of killer<br/>
-        /// Player: The target player that got killed<br/>
-        /// Vector3: The target player's position<br/>
-        /// string - Tool: The tool user to kill the player<br/>
+        /// OnPlayerKillArguments: Details about the kill<br/>
         /// </remarks>
-        public Func<TPlayer, Vector3, TPlayer, Vector3, string, Task> OnAPlayerKilledAnotherPlayer { get; set; }
+        public Func<OnPlayerKillArguments<TPlayer>, Task> OnAPlayerKilledAnotherPlayer { get; set; }
 
         /// <summary>
         /// Fired when game server requests the stats of a player, this function should return in 3000ms or player will not able to join to server.
@@ -826,7 +822,7 @@ namespace BattleBitAPI.Server
                     }
                 case NetworkCommuncation.OnPlayerKilledAnotherPlayer:
                     {
-                        if (stream.CanRead(8 + 12 + 8 + 12 + 2))
+                        if (stream.CanRead(8 + 12 + 8 + 12 + 2 + 1 + 1))
                         {
                             ulong killer = stream.ReadUInt64();
                             Vector3 killerPos = new Vector3(stream.ReadFloat(), stream.ReadFloat(), stream.ReadFloat());
@@ -836,10 +832,31 @@ namespace BattleBitAPI.Server
 
                             if (stream.TryReadString(out var tool))
                             {
+                                PlayerBody body = (PlayerBody)stream.ReadInt8();
+                                ReasonOfDamage source = (ReasonOfDamage)stream.ReadInt8();
+
                                 if (resources.TryGetPlayer(killer, out var killerClient))
+                                {
                                     if (resources.TryGetPlayer(victim, out var victimClient))
+                                    {
                                         if (OnAPlayerKilledAnotherPlayer != null)
-                                            await OnAPlayerKilledAnotherPlayer.Invoke((TPlayer)killerClient, killerPos, (TPlayer)victimClient, victimPos, tool);
+                                        {
+                                            var args = new OnPlayerKillArguments<TPlayer>()
+                                            {
+                                                Killer = (TPlayer)killerClient,
+                                                KillerPosition = killerPos,
+                                                Victim = (TPlayer)victimClient,
+                                                VictimPosition = victimPos,
+                                                BodyPart = body,
+                                                SourceOfDamage = source,
+                                                KillerTool = tool,
+                                            };
+
+                                            await OnAPlayerKilledAnotherPlayer.Invoke(args);
+
+                                        }
+                                    }
+                                }
                             }
                         }
 

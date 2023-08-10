@@ -13,27 +13,14 @@ class Program
         var listener = new ServerListener<MyPlayer>();
         listener.Start(29294);
 
-        listener.OnPlayerTypedMessage += OnPlayerTypedMessage;
+        listener.OnAPlayerKilledAnotherPlayer += OnAPlayerKilledAnotherPlayer;
 
         Thread.Sleep(-1);
     }
 
-    private static async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel ch, string msg)
+    private static async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> arg)
     {
-        if (msg == "nword")
-        {
-            player.NumberOfNWord++;
-            if (player.NumberOfNWord > 4)
-            {
-                player.Kick("N word is not accepted!");
-            }
-            else
-            {
-                player.Message("Do not type nword, this is your " + player.NumberOfNWord + "th warning");
-            }
-            return false;
-        }
-        return true;
+        await Console.Out.WriteLineAsync(arg.Killer + " killed " + arg.Victim + " with " + arg.KillerTool + " (" + arg.BodyPart + ")");
     }
 }
 class MyPlayer : Player
