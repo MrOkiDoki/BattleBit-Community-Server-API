@@ -1,4 +1,4 @@
-# User-specific files
+﻿# User-specific files
 *.suo
 *.user
 *.userosscache
@@ -164,8 +164,8 @@ __pycache__/
 tools/Cake.CoreCLR
 .vscode
 .dotnet
-# Dockerfile
+Dockerfile
 
 # .env file contains default environment variables for docker
 .env
-.git/
+.git
