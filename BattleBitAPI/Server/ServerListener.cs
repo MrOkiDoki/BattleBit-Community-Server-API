@@ -32,6 +32,33 @@ namespace BattleBitAPI.Server
         /// </value>
         public Func<IPAddress, Task<bool>> OnGameServerConnecting { get; set; }
 
+        /// <summary>
+        /// Fired when a game server connects.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// GameServer: Game server that is connecting.<br/>
+        /// </remarks>
+        public Func<GameServer<TPlayer>, Task> OnGameServerConnected { get; set; }
+
+        /// <summary>
+        /// Fired when a game server reconnects. (When game server connects while a socket is already open)
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// GameServer: Game server that is reconnecting.<br/>
+        /// </remarks>
+        public Func<GameServer<TPlayer>, Task> OnGameServerReconnected { get; set; }
+
+        /// <summary>
+        /// Fired when a game server disconnects. Check (GameServer.TerminationReason) to see the reason.
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// GameServer: Game server that disconnected.<br/>
+        /// </remarks>
+        public Func<GameServer<TPlayer>, Task> OnGameServerDisconnected { get; set; }
+
         // --- Private --- 
         private TcpListener mSocket;
         private Dictionary<ulong, (TGameServer server, GameServer<TPlayer>.Internal resources)> mActiveConnections;
@@ -523,12 +550,16 @@ namespace BattleBitAPI.Server
             if (!connectionExist)
             {
                 //New connection!
-                await server.OnConnected();
+                server.OnConnected();
+                if (this.OnGameServerConnected != null)
+                    this.OnGameServerConnected(server);
             }
             else
             {
                 //Reconnection
-                await server.OnReconnected();
+                server.OnReconnected();
+                if (this.OnGameServerReconnected != null)
+                    this.OnGameServerReconnected(server);
             }
 
             //Set the buffer sizes.
@@ -551,7 +582,12 @@ namespace BattleBitAPI.Server
                 }
 
                 if (!server.ReconnectFlag)
-                    await server.OnDisconnected();
+                {
+                    server.OnDisconnected();
+
+                    if (this.OnGameServerDisconnected!= null)
+                        this.OnGameServerDisconnected(server);
+                }
             }
 
             //Remove from list.
