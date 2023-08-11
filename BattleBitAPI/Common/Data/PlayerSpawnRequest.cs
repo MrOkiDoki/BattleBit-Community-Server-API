@@ -2,7 +2,7 @@
 
 namespace BattleBitAPI.Common
 {
-    public struct PlayerSpawnRequest
+    public class PlayerSpawnRequest
     {
         public PlayerSpawningPosition RequestedPoint;
         public PlayerLoadout Loadout;
