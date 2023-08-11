@@ -59,12 +59,12 @@ namespace BattleBitAPI.Server
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
-        public int PlayersToStart
+        public int SecondsLeftToEndOfRound
         {
-            get => this.mResources._RoundSettings.PlayersToStart;
+            get => this.mResources._RoundSettings.SecondsLeftToEndOfRound;
             set
             {
-                this.mResources._RoundSettings.PlayersToStart = value;
+                this.mResources._RoundSettings.SecondsLeftToEndOfRound = value;
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
