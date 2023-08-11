@@ -571,11 +571,21 @@ namespace BattleBitAPI.Server
         }
         private async Task mHandleGameServer(TGameServer server)
         {
+            bool isTicking = false;
+
             using (server)
             {
+                async Task mTickAsync()
+                {
+                    isTicking = true;
+                    await server.OnTick();
+                    isTicking = false;
+                }
+
                 while (server.IsConnected)
                 {
-                    server.OnTick();
+                    if (!isTicking)
+                        mTickAsync();
 
                     await server.Tick();
                     await Task.Delay(10);
@@ -585,7 +595,7 @@ namespace BattleBitAPI.Server
                 {
                     server.OnDisconnected();
 
-                    if (this.OnGameServerDisconnected!= null)
+                    if (this.OnGameServerDisconnected != null)
                         this.OnGameServerDisconnected(server);
                 }
             }
@@ -970,6 +980,36 @@ namespace BattleBitAPI.Server
                         break;
                     }
             }
+        }
+
+        // --- Public ---
+        public IEnumerable<TGameServer> ConnectedGameServers
+        {
+            get
+            {
+                var list = new List<TGameServer>(mActiveConnections.Count);
+                lock (mActiveConnections)
+                {
+                    foreach (var item in mActiveConnections.Values)
+                        list.Add(item.server);
+                }
+                return list;
+            }
+        }
+        public bool TryGetGameServer(IPAddress ip, ushort port, out TGameServer server)
+        {
+            var hash = ((ulong)port << 32) | (ulong)ip.ToUInt();
+            lock (mActiveConnections)
+            {
+                if (mActiveConnections.TryGetValue(hash, out var _server))
+                {
+                    server = (TGameServer)_server.server;
+                    return true;
+                }
+            }
+
+            server = default;
+            return false;
         }
 
         // --- Disposing --- 

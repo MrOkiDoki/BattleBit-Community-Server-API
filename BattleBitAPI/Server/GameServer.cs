@@ -193,12 +193,32 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Team ----
-        public IEnumerable<TPlayer> GetAllPlayers()
+        public IEnumerable<TPlayer> AllPlayers
         {
-            var list = new List<TPlayer>(this.mInternal.Players.Values.Count);
-            foreach (var item in this.mInternal.Players.Values)
-                list.Add((TPlayer)item);
-            return list;
+            get
+            {
+                var list = new List<TPlayer>(this.mInternal.Players.Values.Count);
+                lock (this.mInternal.Players)
+                {
+                    foreach (var item in this.mInternal.Players.Values)
+                        list.Add((TPlayer)item);
+                }
+                return list;
+            }
+        }
+        public bool TryGetPlayer(ulong steamID, out TPlayer player)
+        {
+            lock (this.mInternal.Players)
+            {
+                if (this.mInternal.Players.TryGetValue(steamID, out var _player))
+                {
+                    player = (TPlayer)_player;
+                    return true;
+                }
+            }
+
+            player = default;
+            return false;
         }
 
         // ---- Virtual ---- 
