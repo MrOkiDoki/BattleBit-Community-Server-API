@@ -49,7 +49,7 @@ class MyGameServer : GameServer<MyPlayer>
 
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
-        var c = new Command();
+        var c = new Command(); // just to test
         c.Action.set("heal");
         c.Amount.set(10);
         c.ExecuterName.set("Tester");
