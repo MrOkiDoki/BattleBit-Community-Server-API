@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
-using System.Resources;
 using System.Text;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
@@ -259,7 +258,7 @@ namespace BattleBitAPI.Server
         {
 
         }
-        public virtual async Task<PlayerSpawnRequest> OnPlayerSpawning(TPlayer player, PlayerSpawnRequest request)
+        public virtual async Task<OnPlayerSpawnArguments> OnPlayerSpawning(TPlayer player, OnPlayerSpawnArguments request)
         {
             return request;
         }
@@ -423,7 +422,7 @@ namespace BattleBitAPI.Server
         }
         public void SpawnPlayer(ulong steamID, PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
         {
-            var request = new PlayerSpawnRequest()
+            var request = new OnPlayerSpawnArguments()
             {
                 Loadout = loadout,
                 Wearings = wearings,

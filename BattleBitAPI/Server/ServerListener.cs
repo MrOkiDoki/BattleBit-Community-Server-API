@@ -34,14 +34,16 @@ namespace BattleBitAPI.Server
 
         // --- Private --- 
         private TcpListener mSocket;
+        private bool mIsBlocking;
         private Dictionary<ulong, (TGameServer server, GameServer<TPlayer>.Internal resources)> mActiveConnections;
         private mInstances<TPlayer, TGameServer> mInstanceDatabase;
 
         // --- Construction --- 
-        public ServerListener()
+        public ServerListener(bool isBlocking = true)
         {
             this.mActiveConnections = new Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)>(16);
             this.mInstanceDatabase = new mInstances<TPlayer, TGameServer>();
+            this.mIsBlocking = isBlocking;
         }
 
         // --- Starting ---
@@ -544,7 +546,11 @@ namespace BattleBitAPI.Server
             {
                 while (server.IsConnected)
                 {
-                    await server.OnTick();
+                    if (this.mIsBlocking)
+                        await server.OnTick();
+                    else
+                        server.OnTick();
+
                     await server.Tick();
                     await Task.Delay(10);
                 }
@@ -588,8 +594,16 @@ namespace BattleBitAPI.Server
                                 player.Role = role;
 
                                 resources.AddPlayer(player);
-                                await server.OnPlayerConnected(player);
-                                await player.OnConnected();
+                                if (this.mIsBlocking)
+                                {
+                                    await server.OnPlayerConnected(player);
+                                    await player.OnConnected();
+                                }
+                                else
+                                {
+                                    server.OnPlayerConnected(player);
+                                    player.OnConnected();
+                                }
                             }
                         }
                         break;
@@ -606,8 +620,16 @@ namespace BattleBitAPI.Server
 
                             if (exist)
                             {
-                                await server.OnPlayerDisconnected((TPlayer)player);
-                                await player.OnDisconnected();
+                                if (this.mIsBlocking)
+                                {
+                                    await server.OnPlayerDisconnected((TPlayer)player);
+                                    await player.OnDisconnected();
+                                }
+                                else
+                                {
+                                    server.OnPlayerDisconnected((TPlayer)player);
+                                    player.OnDisconnected();
+                                }
                             }
                         }
                         break;
@@ -668,7 +690,11 @@ namespace BattleBitAPI.Server
                                             SourceOfDamage = source,
                                             KillerTool = tool,
                                         };
-                                        await server.OnAPlayerKilledAnotherPlayer(args);
+
+                                        if (this.mIsBlocking)
+                                            await server.OnAPlayerKilledAnotherPlayer(args);
+                                        else
+                                            server.OnAPlayerKilledAnotherPlayer(args);
                                     }
                                 }
                             }
@@ -681,18 +707,25 @@ namespace BattleBitAPI.Server
                         if (stream.CanRead(8 + 2))
                         {
                             ulong steamID = stream.ReadUInt64();
-
                             var stats = new PlayerStats();
                             stats.Read(stream);
-                            stats = await server.OnGetPlayerStats(steamID, stats);
 
-                            using (var response = Common.Serialization.Stream.Get())
+                            async Task mHandle()
                             {
-                                response.Write((byte)NetworkCommuncation.SendPlayerStats);
-                                response.Write(steamID);
-                                stats.Write(response);
-                                server.WriteToSocket(response);
+                                stats = await server.OnGetPlayerStats(steamID, stats);
+                                using (var response = Common.Serialization.Stream.Get())
+                                {
+                                    response.Write((byte)NetworkCommuncation.SendPlayerStats);
+                                    response.Write(steamID);
+                                    stats.Write(response);
+                                    server.WriteToSocket(response);
+                                }
                             }
+
+                            if (mIsBlocking)
+                                await mHandle();
+                            else
+                                mHandle();
                         }
                         break;
                     }
@@ -704,7 +737,10 @@ namespace BattleBitAPI.Server
                             PlayerStats stats = new PlayerStats();
                             stats.Read(stream);
 
-                            await server.OnSavePlayerStats(steamID, stats);
+                            if (mIsBlocking)
+                                await server.OnSavePlayerStats(steamID, stats);
+                            else
+                                server.OnSavePlayerStats(steamID, stats);
                         }
                         break;
                     }
@@ -717,12 +753,17 @@ namespace BattleBitAPI.Server
 
                             if (resources.TryGetPlayer(steamID, out var client))
                             {
-                                bool accepted = true;
+                                async Task mHandle()
+                                {
+                                    bool accepted = await server.OnPlayerRequestingToChangeRole((TPlayer)client, role);
+                                    if (accepted)
+                                        server.SetRoleTo(steamID, role);
+                                }
 
-                                accepted = await server.OnPlayerRequestingToChangeRole((TPlayer)client, role);
-
-                                if (accepted)
-                                    server.SetRoleTo(steamID, role);
+                                if (mIsBlocking)
+                                    await mHandle();
+                                else
+                                    mHandle();
                             }
                         }
                         break;
@@ -737,7 +778,10 @@ namespace BattleBitAPI.Server
                             if (resources.TryGetPlayer(steamID, out var client))
                             {
                                 client.Role = role;
-                                await server.OnPlayerChangedRole((TPlayer)client, role);
+                                if (mIsBlocking)
+                                    await server.OnPlayerChangedRole((TPlayer)client, role);
+                                else
+                                    server.OnPlayerChangedRole((TPlayer)client, role);
                             }
                         }
                         break;
@@ -752,7 +796,10 @@ namespace BattleBitAPI.Server
                             if (resources.TryGetPlayer(steamID, out var client))
                             {
                                 client.Squad = squad;
-                                await server.OnPlayerJoinedSquad((TPlayer)client, squad);
+                                if (mIsBlocking)
+                                    await server.OnPlayerJoinedSquad((TPlayer)client, squad);
+                                else
+                                    server.OnPlayerJoinedSquad((TPlayer)client, squad);
                             }
                         }
                         break;
@@ -770,10 +817,18 @@ namespace BattleBitAPI.Server
                                 client.Squad = Squads.NoSquad;
                                 client.Role = GameRole.Assault;
 
-                                await server.OnPlayerLeftSquad((TPlayer)client, oldSquad);
-
-                                if (oldRole != GameRole.Assault)
-                                    await server.OnPlayerChangedRole((TPlayer)client, GameRole.Assault);
+                                if (mIsBlocking)
+                                {
+                                    await server.OnPlayerLeftSquad((TPlayer)client, oldSquad);
+                                    if (oldRole != GameRole.Assault)
+                                        await server.OnPlayerChangedRole((TPlayer)client, GameRole.Assault);
+                                }
+                                else
+                                {
+                                    server.OnPlayerLeftSquad((TPlayer)client, oldSquad);
+                                    if (oldRole != GameRole.Assault)
+                                        server.OnPlayerChangedRole((TPlayer)client, GameRole.Assault);
+                                }
                             }
                         }
                         break;
@@ -788,7 +843,10 @@ namespace BattleBitAPI.Server
                             if (resources.TryGetPlayer(steamID, out var client))
                             {
                                 client.Team = team;
-                                await server.OnPlayerChangeTeam((TPlayer)client, team);
+                                if (mIsBlocking)
+                                    await server.OnPlayerChangeTeam((TPlayer)client, team);
+                                else
+                                    server.OnPlayerChangeTeam((TPlayer)client, team);
                             }
                         }
                         break;
@@ -799,21 +857,31 @@ namespace BattleBitAPI.Server
                         {
                             ulong steamID = stream.ReadUInt64();
 
-                            var request = new PlayerSpawnRequest();
+                            var request = new OnPlayerSpawnArguments();
                             request.Read(stream);
                             ushort vehicleID = stream.ReadUInt16();
 
                             if (resources.TryGetPlayer(steamID, out var client))
-                                request = await server.OnPlayerSpawning((TPlayer)client, request);
-
-                            //Respond back.
-                            using (var response = Common.Serialization.Stream.Get())
                             {
-                                response.Write((byte)NetworkCommuncation.SpawnPlayer);
-                                response.Write(steamID);
-                                request.Write(response);
-                                response.Write(vehicleID);
-                                server.WriteToSocket(response);
+                                async Task mHandle()
+                                {
+                                    request = await server.OnPlayerSpawning((TPlayer)client, request);
+
+                                    //Respond back.
+                                    using (var response = Common.Serialization.Stream.Get())
+                                    {
+                                        response.Write((byte)NetworkCommuncation.SpawnPlayer);
+                                        response.Write(steamID);
+                                        request.Write(response);
+                                        response.Write(vehicleID);
+                                        server.WriteToSocket(response);
+                                    }
+                                }
+
+                                if (mIsBlocking)
+                                    await mHandle();
+                                else
+                                    mHandle();
                             }
                         }
                         break;
@@ -831,7 +899,10 @@ namespace BattleBitAPI.Server
                             {
                                 if (resources.TryGetPlayer(reported, out var reportedClient))
                                 {
-                                    await server.OnPlayerReported((TPlayer)reporterClient, (TPlayer)reportedClient, reason, additionalInfo);
+                                    if (mIsBlocking)
+                                        await server.OnPlayerReported((TPlayer)reporterClient, (TPlayer)reportedClient, reason, additionalInfo);
+                                    else
+                                        server.OnPlayerReported((TPlayer)reporterClient, (TPlayer)reportedClient, reason, additionalInfo);
                                 }
                             }
                         }
@@ -854,8 +925,16 @@ namespace BattleBitAPI.Server
 
                                 client.IsAlive = true;
 
-                                await client.OnSpawned();
-                                await server.OnPlayerSpawned((TPlayer)client);
+                                if (mIsBlocking)
+                                {
+                                    await client.OnSpawned();
+                                    await server.OnPlayerSpawned((TPlayer)client);
+                                }
+                                else
+                                {
+                                    client.OnSpawned();
+                                    server.OnPlayerSpawned((TPlayer)client);
+                                }
                             }
                         }
                         break;
@@ -871,9 +950,16 @@ namespace BattleBitAPI.Server
                                 client.CurrentWearings = new PlayerWearings();
                                 client.IsAlive = false;
 
-                                await client.OnDied();
-
-                                await server.OnPlayerDied((TPlayer)client);
+                                if (mIsBlocking)
+                                {
+                                    await client.OnDied();
+                                    await server.OnPlayerDied((TPlayer)client);
+                                }
+                                else
+                                {
+                                    client.OnDied();
+                                    server.OnPlayerDied((TPlayer)client);
+                                }
                             }
                         }
                         break;
@@ -964,7 +1050,7 @@ namespace BattleBitAPI.Server
                 {
                     if (this.mPlayerInstances.TryGetValue(steamID, out var player))
                         return player;
-                    
+
                     player = Activator.CreateInstance<TPlayer>();
                     player.OnCreated();
                     mPlayerInstances.Add(steamID, player);

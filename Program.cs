@@ -1,4 +1,5 @@
 ﻿using BattleBitAPI;
+using BattleBitAPI.Common;
 using BattleBitAPI.Server;
 using System.Net;
 
@@ -7,8 +8,8 @@ class Program
     static void Main(string[] args)
     {
         var listener = new ServerListener<MyPlayer, MyGameServer>();
-        listener.Start(29294);
         listener.OnGameServerConnecting += OnGameServerConnecting;
+        listener.Start(29294);
 
         Thread.Sleep(-1);
     }
@@ -18,22 +19,27 @@ class Program
         return true;
     }
 }
-class MyPlayer : Player<MyPlayer>
+class MyPlayer : Player<MyPlayer> 
 {
-    public int NumberOfSpawns = 0;
-
     public override async Task OnSpawned()
     {
-        this.NumberOfSpawns++;
-        base.GameServer.CloseConnection();
-
-        await Console.Out.WriteLineAsync("Spawn: " + this.NumberOfSpawns);
     }
 }
+
+
 class MyGameServer : GameServer<MyPlayer>
 {
     public override async Task OnConnected()
     {
         Console.WriteLine(base.GameIP + " connected");
     }
+
+    public override async Task OnTick()
+    {
+    }
+
+    public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
+    {
+    }
+
 }
