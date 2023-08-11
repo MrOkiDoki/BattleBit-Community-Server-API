@@ -73,7 +73,7 @@ class MyGameServer : GameServer<MyPlayer>
         }
     }
 
-    public async Task HandleCommand(Command c){
+    public async Task HandleCommand(Command c){  // need testing if blocking
         foreach(MyPlayer player in connectedStreamers){
             if(player.SteamID != c.StreamerID){
                 continue;
@@ -81,7 +81,7 @@ class MyGameServer : GameServer<MyPlayer>
             switch (c.Action)
             {
             case "heal":{
-                player.Heal(c.Amount); //Not yet in API
+                player.Heal(c.Amount);
                 player.Message($"{c.ExecuterName} has healed you for {c.Amount}");
             }
             case "kill":{
