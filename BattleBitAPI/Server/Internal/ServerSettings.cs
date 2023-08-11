@@ -1,86 +1,89 @@
 ﻿namespace BattleBitAPI.Server
 {
-    public class ServerSettings
+    public class ServerSettings<TPlayer> where TPlayer : Player<TPlayer>
     {
-        private GameServer.mInternalResources mResources;
-        public ServerSettings(GameServer.mInternalResources resources)
+        private GameServer<TPlayer>.Internal mResources;
+        public ServerSettings(GameServer<TPlayer>.Internal resources)
         {
             mResources = resources;
         }
 
         public float DamageMultiplier
         {
-            get => mResources.Settings.DamageMultiplier;
+            get => mResources._Settings.DamageMultiplier;
             set
             {
-                mResources.Settings.DamageMultiplier = value;
+                mResources._Settings.DamageMultiplier = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool BleedingEnabled
         {
-            get => mResources.Settings.BleedingEnabled;
+            get => mResources._Settings.BleedingEnabled;
             set
             {
-                mResources.Settings.BleedingEnabled = value;
+                mResources._Settings.BleedingEnabled = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool StamineEnabled
         {
-            get => mResources.Settings.StamineEnabled;
+            get => mResources._Settings.StamineEnabled;
             set
             {
-                mResources.Settings.StamineEnabled = value;
+                mResources._Settings.StamineEnabled = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool FriendlyFireEnabled
         {
-            get => mResources.Settings.FriendlyFireEnabled;
+            get => mResources._Settings.FriendlyFireEnabled;
             set
             {
-                mResources.Settings.FriendlyFireEnabled = value;
+                mResources._Settings.FriendlyFireEnabled = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool OnlyWinnerTeamCanVote
         {
-            get => mResources.Settings.OnlyWinnerTeamCanVote;
+            get => mResources._Settings.OnlyWinnerTeamCanVote;
             set
             {
-                mResources.Settings.OnlyWinnerTeamCanVote = value;
+                mResources._Settings.OnlyWinnerTeamCanVote = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool HitMarkersEnabled
         {
-            get => mResources.Settings.HitMarkersEnabled;
+            get => mResources._Settings.HitMarkersEnabled;
             set
             {
-                mResources.Settings.HitMarkersEnabled = value;
+                mResources._Settings.HitMarkersEnabled = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool PointLogEnabled
         {
-            get => mResources.Settings.PointLogEnabled;
+            get => mResources._Settings.PointLogEnabled;
             set
             {
-                mResources.Settings.PointLogEnabled = value;
+                mResources._Settings.PointLogEnabled = value;
                 mResources.IsDirtySettings = true;
             }
         }
         public bool SpectatorEnabled
         {
-            get => mResources.Settings.SpectatorEnabled;
+            get => mResources._Settings.SpectatorEnabled;
             set
             {
-                mResources.Settings.SpectatorEnabled = value;
+                mResources._Settings.SpectatorEnabled = value;
                 mResources.IsDirtySettings = true;
             }
         }
 
+        public void Reset()
+        {
 
+        }
     }
 }

@@ -1,31 +1,31 @@
 ﻿namespace BattleBitAPI.Server
 {
-    public class MapRotation
+    public class MapRotation<TPlayer> where TPlayer : Player<TPlayer>
     {
-        private GameServer.mInternalResources mResources;
-        public MapRotation(GameServer.mInternalResources resources)
+        private GameServer<TPlayer>.Internal mResources;
+        public MapRotation(GameServer<TPlayer>.Internal resources)
         {
             mResources = resources;
         }
 
         public IEnumerable<string> GetMapRotation()
         {
-            lock (mResources.MapRotation)
-                return new List<string>(mResources.MapRotation);
+            lock (mResources._MapRotation)
+                return new List<string>(mResources._MapRotation);
         }
         public bool InRotation(string map)
         {
             map = map.ToUpperInvariant();
 
-            lock (mResources.MapRotation)
-                return mResources.MapRotation.Contains(map);
+            lock (mResources._MapRotation)
+                return mResources._MapRotation.Contains(map);
         }
         public bool RemoveFromRotation(string map)
         {
             map = map.ToUpperInvariant();
 
-            lock (mResources.MapRotation)
-                if (!mResources.MapRotation.Remove(map))
+            lock (mResources._MapRotation)
+                if (!mResources._MapRotation.Remove(map))
                     return false;
             mResources.MapRotationDirty = true;
             return true;
@@ -34,11 +34,15 @@
         {
             map = map.ToUpperInvariant();
 
-            lock (mResources.MapRotation)
-                if (!mResources.MapRotation.Add(map))
+            lock (mResources._MapRotation)
+                if (!mResources._MapRotation.Add(map))
                     return false;
             mResources.MapRotationDirty = true;
             return true;
+        }
+
+        public void Reset()
+        {
         }
     }
 }

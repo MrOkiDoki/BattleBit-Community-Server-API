@@ -5,12 +5,12 @@ using System.Numerics;
 
 namespace BattleBitAPI
 {
-    public class Player
+    public class Player<TPlayer> where TPlayer : Player<TPlayer>
     {
         public ulong SteamID { get; internal set; }
         public string Name { get; internal set; }
         public IPAddress IP { get; internal set; }
-        public GameServer GameServer { get; internal set; }
+        public GameServer<TPlayer> GameServer { get; internal set; }
         public GameRole Role { get; internal set; }
         public Team Team { get; internal set; }
         public Squads Squad { get; internal set; }
@@ -18,15 +18,23 @@ namespace BattleBitAPI
         public PlayerLoadout CurrentLoadout { get; internal set; } = new PlayerLoadout();
         public PlayerWearings CurrentWearings { get; internal set; } = new PlayerWearings();
 
-        internal virtual async Task OnInitialized()
+        public virtual void OnCreated()
         {
 
         }
-        internal virtual async Task OnSpawned()
+        public virtual async Task OnConnected()
         {
 
         }
-        internal virtual async Task OnDied()
+        public virtual async Task OnSpawned()
+        {
+
+        }
+        public virtual async Task OnDied()
+        {
+
+        }
+        public virtual async Task OnDisconnected()
         {
 
         }

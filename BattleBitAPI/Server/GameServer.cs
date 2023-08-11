@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
+using System.Resources;
 using System.Text;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
@@ -9,111 +10,39 @@ using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
 {
-    public class GameServer : IDisposable
+    public class GameServer<TPlayer> : System.IDisposable where TPlayer : Player<TPlayer>
     {
         // ---- Public Variables ---- 
-        public TcpClient Socket { get; private set; }
+        public ulong ServerHash => mInternal.ServerHash;
+        public bool IsConnected => mInternal.IsConnected;
+        public IPAddress GameIP => mInternal.GameIP;
+        public int GamePort => mInternal.GamePort;
 
-        public ulong ServerHash { get; private set; }
-        /// <summary>
-        /// Is game server connected to our server?
-        /// </summary>
-        public bool IsConnected { get; private set; }
-        public IPAddress GameIP { get; private set; }
-        public int GamePort { get; private set; }
-        public bool IsPasswordProtected { get; private set; }
-        public string ServerName { get; private set; }
-        public string Gamemode { get; private set; }
-        public string Map { get; private set; }
-        public MapSize MapSize { get; private set; }
-        public MapDayNight DayNight { get; private set; }
-        public int CurrentPlayers { get; private set; }
-        public int InQueuePlayers { get; private set; }
-        public int MaxPlayers { get; private set; }
-        public string LoadingScreenText { get; private set; }
-        public string ServerRulesText { get; private set; }
-        public ServerSettings Settings { get; private set; }
-        public MapRotation MapRotation { get; private set; }
-        public GamemodeRotation GamemodeRotation { get; private set; }
-
-        /// <summary>
-        /// Reason why connection was terminated.
-        /// </summary>
-        public string TerminationReason { get; private set; }
-        internal bool ReconnectFlag { get; set; }
+        public TcpClient Socket => mInternal.Socket;
+        public bool IsPasswordProtected => mInternal.IsPasswordProtected;
+        public string ServerName => mInternal.ServerName;
+        public string Gamemode => mInternal.Gamemode;
+        public string Map => mInternal.Map;
+        public MapSize MapSize => mInternal.MapSize;
+        public MapDayNight DayNight => mInternal.DayNight;
+        public int CurrentPlayers => mInternal.CurrentPlayers;
+        public int InQueuePlayers => mInternal.InQueuePlayers;
+        public int MaxPlayers => mInternal.MaxPlayers;
+        public string LoadingScreenText => mInternal.LoadingScreenText;
+        public string ServerRulesText => mInternal.ServerRulesText;
+        public ServerSettings<TPlayer> Settings => mInternal.Settings;
+        public MapRotation<TPlayer> MapRotation => mInternal.MapRotation;
+        public GamemodeRotation<TPlayer> GamemodeRotation => mInternal.GamemodeRotation;
+        public string TerminationReason => mInternal.TerminationReason;
+        public bool ReconnectFlag => mInternal.ReconnectFlag;
 
         // ---- Private Variables ---- 
-        private byte[] mKeepAliveBuffer;
-        private Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> mExecutionFunc;
-        private Common.Serialization.Stream mWriteStream;
-        private Common.Serialization.Stream mReadStream;
-        private uint mReadPackageSize;
-        private long mLastPackageReceived;
-        private long mLastPackageSent;
-        private bool mIsDisposed;
-        private mInternalResources mInternal;
-        private StringBuilder mBuilder;
-        private bool mWantsToCloseConnection;
-
-        // ---- Construction ---- 
-        public GameServer(TcpClient socket, mInternalResources resources, Func<GameServer, mInternalResources, Common.Serialization.Stream, Task> func, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
-        {
-            this.IsConnected = true;
-            this.Socket = socket;
-            this.mInternal = resources;
-            this.mExecutionFunc = func;
-            this.mBuilder = new StringBuilder(1024);
-
-            this.GameIP = iP;
-            this.GamePort = port;
-            this.IsPasswordProtected = isPasswordProtected;
-            this.ServerName = serverName;
-            this.Gamemode = gamemode;
-            this.Map = map;
-            this.MapSize = mapSize;
-            this.DayNight = dayNight;
-            this.CurrentPlayers = currentPlayers;
-            this.InQueuePlayers = inQueuePlayers;
-            this.MaxPlayers = maxPlayers;
-            this.LoadingScreenText = loadingScreenText;
-            this.ServerRulesText = serverRulesText;
-
-            this.TerminationReason = string.Empty;
-
-            this.mWriteStream = new Common.Serialization.Stream()
-            {
-                Buffer = new byte[Const.MaxNetworkPackageSize],
-                InPool = false,
-                ReadPosition = 0,
-                WritePosition = 0,
-            };
-            this.mReadStream = new Common.Serialization.Stream()
-            {
-                Buffer = new byte[Const.MaxNetworkPackageSize],
-                InPool = false,
-                ReadPosition = 0,
-                WritePosition = 0,
-            };
-            this.mKeepAliveBuffer = new byte[4]
-            {
-                0,0,0,0,
-            };
-
-            this.mLastPackageReceived = Extentions.TickCount;
-            this.mLastPackageSent = Extentions.TickCount;
-
-            this.ServerHash = ((ulong)port << 32) | (ulong)iP.ToUInt();
-            this.Settings = new ServerSettings(resources);
-            this.MapRotation = new MapRotation(resources);
-            this.GamemodeRotation = new GamemodeRotation(resources);
-        }
+        private Internal mInternal;
 
         // ---- Tick ----
         public async Task Tick()
         {
             if (!this.IsConnected)
-                return;
-            if (this.mIsDisposed)
                 return;
 
             if (this.mInternal.IsDirtySettings)
@@ -124,37 +53,39 @@ namespace BattleBitAPI.Server
                 using (var pck = Common.Serialization.Stream.Get())
                 {
                     pck.Write((byte)NetworkCommuncation.SetNewRoomSettings);
-                    this.mInternal.Settings.Write(pck);
+                    this.mInternal._Settings.Write(pck);
                     WriteToSocket(pck);
                 }
             }
             if (this.mInternal.MapRotationDirty)
             {
                 this.mInternal.MapRotationDirty = false;
-                this.mBuilder.Clear();
+                this.mInternal.mBuilder.Clear();
 
-                this.mBuilder.Append("setmaprotation ");
-                lock (this.mInternal.MapRotation)
-                    foreach (var map in this.mInternal.MapRotation)
+                this.mInternal.mBuilder.Append("setmaprotation ");
+                lock (this.mInternal._MapRotation)
+                    foreach (var map in this.mInternal._MapRotation)
                     {
-                        this.mBuilder.Append(map);
-                        this.mBuilder.Append(',');
+                        this.mInternal.mBuilder.Append(map);
+                        this.mInternal.mBuilder.Append(',');
                     }
-                this.ExecuteCommand(this.mBuilder.ToString());
+                this.ExecuteCommand(this.mInternal.mBuilder.ToString());
             }
             if (this.mInternal.GamemodeRotationDirty)
             {
                 this.mInternal.GamemodeRotationDirty = false;
-                this.mBuilder.Clear();
+                this.mInternal.mBuilder.Clear();
 
-                this.mBuilder.Append("setgamemoderotation ");
-                lock (this.mInternal.GamemodeRotation)
-                    foreach (var gamemode in this.mInternal.GamemodeRotation)
+                this.mInternal.mBuilder.Append("setgamemoderotation ");
+                lock (this.mInternal._GamemodeRotation)
+                {
+                    foreach (var gamemode in this.mInternal._GamemodeRotation)
                     {
-                        this.mBuilder.Append(gamemode);
-                        this.mBuilder.Append(',');
+                        this.mInternal.mBuilder.Append(gamemode);
+                        this.mInternal.mBuilder.Append(',');
                     }
-                this.ExecuteCommand(this.mBuilder.ToString());
+                }
+                this.ExecuteCommand(this.mInternal.mBuilder.ToString());
             }
 
             try
@@ -167,7 +98,7 @@ namespace BattleBitAPI.Server
                 }
 
                 //Did user requested to close connection?
-                if (this.mWantsToCloseConnection)
+                if (this.mInternal.mWantsToCloseConnection)
                 {
                     mClose(this.TerminationReason);
                     return;
@@ -178,82 +109,82 @@ namespace BattleBitAPI.Server
                 //Read network packages.
                 while (Socket.Available > 0)
                 {
-                    this.mLastPackageReceived = Extentions.TickCount;
+                    this.mInternal.mLastPackageReceived = Extentions.TickCount;
 
                     //Do we know the package size?
-                    if (this.mReadPackageSize == 0)
+                    if (this.mInternal.mReadPackageSize == 0)
                     {
                         const int sizeToRead = 4;
-                        int leftSizeToRead = sizeToRead - this.mReadStream.WritePosition;
+                        int leftSizeToRead = sizeToRead - this.mInternal.mReadStream.WritePosition;
 
-                        int read = await networkStream.ReadAsync(this.mReadStream.Buffer, this.mReadStream.WritePosition, leftSizeToRead);
+                        int read = await networkStream.ReadAsync(this.mInternal.mReadStream.Buffer, this.mInternal.mReadStream.WritePosition, leftSizeToRead);
                         if (read <= 0)
                             throw new Exception("Connection was terminated.");
 
-                        this.mReadStream.WritePosition += read;
+                        this.mInternal.mReadStream.WritePosition += read;
 
                         //Did we receive the package?
-                        if (this.mReadStream.WritePosition >= 4)
+                        if (this.mInternal.mReadStream.WritePosition >= 4)
                         {
                             //Read the package size
-                            this.mReadPackageSize = this.mReadStream.ReadUInt32();
+                            this.mInternal.mReadPackageSize = this.mInternal.mReadStream.ReadUInt32();
 
-                            if (this.mReadPackageSize > Const.MaxNetworkPackageSize)
+                            if (this.mInternal.mReadPackageSize > Const.MaxNetworkPackageSize)
                                 throw new Exception("Incoming package was larger than 'Conts.MaxNetworkPackageSize'");
 
-                            this.mReadStream.Reset();
+                            this.mInternal.mReadStream.Reset();
                         }
                     }
                     else
                     {
-                        int sizeToRead = (int)mReadPackageSize;
-                        int leftSizeToRead = sizeToRead - this.mReadStream.WritePosition;
+                        int sizeToRead = (int)this.mInternal.mReadPackageSize;
+                        int leftSizeToRead = sizeToRead - this.mInternal.mReadStream.WritePosition;
 
-                        int read = await networkStream.ReadAsync(this.mReadStream.Buffer, this.mReadStream.WritePosition, leftSizeToRead);
+                        int read = await networkStream.ReadAsync(this.mInternal.mReadStream.Buffer, this.mInternal.mReadStream.WritePosition, leftSizeToRead);
                         if (read <= 0)
                             throw new Exception("Connection was terminated.");
 
-                        this.mReadStream.WritePosition += read;
+                        this.mInternal.mReadStream.WritePosition += read;
 
                         //Do we have the package?
-                        if (this.mReadStream.WritePosition >= mReadPackageSize)
+                        if (this.mInternal.mReadStream.WritePosition >= this.mInternal.mReadPackageSize)
                         {
-                            this.mReadPackageSize = 0;
+                            this.mInternal.mReadPackageSize = 0;
 
-                            await this.mExecutionFunc(this, this.mInternal, this.mReadStream);
+                            await this.mInternal.mExecutionFunc(this, this.mInternal, this.mInternal.mReadStream);
 
                             //Reset
-                            this.mReadStream.Reset();
+                            this.mInternal.mReadStream.Reset();
                         }
                     }
                 }
 
                 //Send the network packages.
-                if (this.mWriteStream.WritePosition > 0)
+                if (this.mInternal.mWriteStream.WritePosition > 0)
                 {
-                    lock (this.mWriteStream)
+                    lock (this.mInternal.mWriteStream)
                     {
-                        if (this.mWriteStream.WritePosition > 0)
+                        if (this.mInternal.mWriteStream.WritePosition > 0)
                         {
-                            networkStream.WriteAsync(this.mWriteStream.Buffer, 0, this.mWriteStream.WritePosition);
-                            this.mWriteStream.WritePosition = 0;
+                            networkStream.WriteAsync(this.mInternal.mWriteStream.Buffer, 0, this.mInternal.mWriteStream.WritePosition);
+                            this.mInternal.mWriteStream.WritePosition = 0;
 
-                            this.mLastPackageSent = Extentions.TickCount;
+                            this.mInternal.mLastPackageSent = Extentions.TickCount;
                         }
                     }
                 }
 
                 //Are we timed out?
-                if ((Extentions.TickCount - this.mLastPackageReceived) > Const.NetworkTimeout)
+                if ((Extentions.TickCount - this.mInternal.mLastPackageReceived) > Const.NetworkTimeout)
                     throw new Exception("Timedout.");
 
                 //Send keep alive if needed
-                if ((Extentions.TickCount - this.mLastPackageSent) > Const.NetworkKeepAlive)
+                if ((Extentions.TickCount - this.mInternal.mLastPackageSent) > Const.NetworkKeepAlive)
                 {
                     //Send keep alive.
-                    await networkStream.WriteAsync(this.mKeepAliveBuffer, 0, 4);
+                    await networkStream.WriteAsync(this.mInternal.mKeepAliveBuffer, 0, 4);
                     await networkStream.FlushAsync();
-                    this.mLastPackageSent = Extentions.TickCount;
+                    this.mInternal.mLastPackageSent = Extentions.TickCount;
                 }
             }
             catch (Exception e)
@@ -263,20 +194,100 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Team ----
-        public IEnumerable<Player> GetAllPlayers()
+        public IEnumerable<TPlayer> GetAllPlayers()
         {
-            var list = new List<Player>(254);
-            list.AddRange(this.mInternal.Players.Values);
+            var list = new List<TPlayer>(this.mInternal.Players.Values.Count);
+            foreach (var item in this.mInternal.Players.Values)
+                list.Add((TPlayer)item);
             return list;
         }
+
+        // ---- Virtual ---- 
+        public virtual async Task OnConnected()
+        {
+
+        }
+        public virtual async Task OnTick()
+        {
+
+        }
+        public virtual async Task OnReconnected()
+        {
+
+        }
+        public virtual async Task OnDisconnected()
+        {
+
+        }
+        public virtual async Task OnPlayerConnected(TPlayer player)
+        {
+
+        }
+        public virtual async Task OnPlayerDisconnected(TPlayer player)
+        {
+
+        }
+        public virtual async Task<bool> OnPlayerTypedMessage(TPlayer player, ChatChannel channel, string msg)
+        {
+            return true;
+        }
+        public virtual async Task<PlayerStats> OnGetPlayerStats(ulong steamID, PlayerStats officialStats)
+        {
+            return officialStats;
+        }
+        public virtual async Task OnSavePlayerStats(ulong steamID, PlayerStats stats)
+        {
+
+        }
+        public virtual async Task<bool> OnPlayerRequestingToChangeRole(TPlayer player, GameRole role)
+        {
+            return true;
+        }
+        public virtual async Task OnPlayerChangedRole(TPlayer player, GameRole role)
+        {
+
+        }
+        public virtual async Task OnPlayerJoinedSquad(TPlayer player, Squads squad)
+        {
+
+        }
+        public virtual async Task OnPlayerLeftSquad(TPlayer player, Squads squad)
+        {
+
+        }
+        public virtual async Task OnPlayerChangeTeam(TPlayer player, Team team)
+        {
+
+        }
+        public virtual async Task<PlayerSpawnRequest> OnPlayerSpawning(TPlayer player, PlayerSpawnRequest request)
+        {
+            return request;
+        }
+        public virtual async Task OnPlayerSpawned(TPlayer player)
+        {
+
+        }
+        public virtual async Task OnPlayerDied(TPlayer player)
+        {
+
+        }
+        public virtual async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<TPlayer> args)
+        {
+
+        }
+        public virtual async Task OnPlayerReported(TPlayer from, TPlayer to, ReportReason reason, string additional)
+        {
+
+        }
+
 
         // ---- Functions ----
         public void WriteToSocket(Common.Serialization.Stream pck)
         {
-            lock (mWriteStream)
+            lock (this.mInternal.mWriteStream)
             {
-                mWriteStream.Write((uint)pck.WritePosition);
-                mWriteStream.Write(pck.Buffer, 0, pck.WritePosition);
+                this.mInternal.mWriteStream.Write((uint)pck.WritePosition);
+                this.mInternal.mWriteStream.Write(pck.Buffer, 0, pck.WritePosition);
             }
         }
         public void ExecuteCommand(string cmd)
@@ -285,11 +296,11 @@ namespace BattleBitAPI.Server
                 return;
 
             int bytesLong = System.Text.Encoding.UTF8.GetByteCount(cmd);
-            lock (mWriteStream)
+            lock (this.mInternal.mWriteStream)
             {
-                mWriteStream.Write((uint)(1 + 2 + bytesLong));
-                mWriteStream.Write((byte)NetworkCommuncation.ExecuteCommand);
-                mWriteStream.Write(cmd);
+                this.mInternal.mWriteStream.Write((uint)(1 + 2 + bytesLong));
+                this.mInternal.mWriteStream.Write((byte)NetworkCommuncation.ExecuteCommand);
+                this.mInternal.mWriteStream.Write(cmd);
             }
         }
 
@@ -342,7 +353,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("kick " + steamID + " " + reason);
         }
-        public void Kick(Player player, string reason)
+        public void Kick(Player<TPlayer> player, string reason)
         {
             Kick(player.SteamID, reason);
         }
@@ -350,7 +361,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("kill " + steamID);
         }
-        public void Kill(Player player)
+        public void Kill(Player<TPlayer> player)
         {
             Kill(player.SteamID);
         }
@@ -358,7 +369,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("changeteam " + steamID);
         }
-        public void ChangeTeam(Player player)
+        public void ChangeTeam(Player<TPlayer> player)
         {
             ChangeTeam(player.SteamID);
         }
@@ -366,7 +377,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("squadkick " + steamID);
         }
-        public void KickFromSquad(Player player)
+        public void KickFromSquad(Player<TPlayer> player)
         {
             KickFromSquad(player.SteamID);
         }
@@ -374,7 +385,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("squaddisband " + steamID);
         }
-        public void DisbandPlayerCurrentSquad(Player player)
+        public void DisbandPlayerCurrentSquad(Player<TPlayer> player)
         {
             DisbandPlayerSSquad(player.SteamID);
         }
@@ -382,7 +393,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("squadpromote " + steamID);
         }
-        public void PromoteSquadLeader(Player player)
+        public void PromoteSquadLeader(Player<TPlayer> player)
         {
             PromoteSquadLeader(player.SteamID);
         }
@@ -390,7 +401,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("warn " + steamID + " " + msg);
         }
-        public void WarnPlayer(Player player, string msg)
+        public void WarnPlayer(Player<TPlayer> player, string msg)
         {
             WarnPlayer(player.SteamID, msg);
         }
@@ -398,7 +409,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("msg " + steamID + " " + msg);
         }
-        public void MessageToPlayer(Player player, string msg)
+        public void MessageToPlayer(Player<TPlayer> player, string msg)
         {
             MessageToPlayer(player.SteamID, msg);
         }
@@ -406,7 +417,7 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("setrole " + steamID + " " + role);
         }
-        public void SetRoleTo(Player player, GameRole role)
+        public void SetRoleTo(Player<TPlayer> player, GameRole role)
         {
             SetRoleTo(player.SteamID, role);
         }
@@ -434,52 +445,36 @@ namespace BattleBitAPI.Server
                 WriteToSocket(response);
             }
         }
-        public void SpawnPlayer(Player player, PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
+        public void SpawnPlayer(Player<TPlayer> player, PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
         {
             SpawnPlayer(player.SteamID, loadout, wearings, position, lookDirection, stand, spawnProtection);
         }
 
         // ---- Closing ----
-        public void CloseConnection(string additionInfo = string.Empty)
+        public void CloseConnection(string additionInfo = "")
         {
             if (string.IsNullOrWhiteSpace(additionInfo))
-                this.TerminationReason = additionInfo;
+                this.mInternal.TerminationReason = additionInfo;
             else
-                this.TerminationReason = "User requested to terminate the connection";
-            this.mWantsToCloseConnection = true;
+                this.mInternal.TerminationReason = "User requested to terminate the connection";
+            this.mInternal.mWantsToCloseConnection = true;
         }
         private void mClose(string reason)
         {
             if (this.IsConnected)
             {
-                this.TerminationReason = reason;
-                this.IsConnected = false;
+                this.mInternal.TerminationReason = reason;
+                this.mInternal.IsConnected = false;
             }
         }
 
         // ---- Disposing ----
         public void Dispose()
         {
-            if (this.mIsDisposed)
-                return;
-            this.mIsDisposed = true;
-
-            if (this.mWriteStream != null)
+            if (this.mInternal.Socket != null)
             {
-                this.mWriteStream.Dispose();
-                this.mWriteStream = null;
-            }
-
-            if (this.mReadStream != null)
-            {
-                this.mReadStream.Dispose();
-                this.mReadStream = null;
-            }
-
-            if (this.Socket != null)
-            {
-                this.Socket.SafeClose();
-                this.Socket = null;
+                this.mInternal.Socket.SafeClose();
+                this.mInternal.Socket = null;
             }
         }
 
@@ -491,23 +486,141 @@ namespace BattleBitAPI.Server
                 this.ServerName;
         }
 
-
+        // ---- Static ----
+        public static TGameServer CreateInstance<TGameServer>(Internal @internal) where TGameServer : GameServer<TPlayer>
+        {
+            TGameServer gameServer = (TGameServer)Activator.CreateInstance(typeof(TGameServer));
+            gameServer.mInternal = @internal;
+            return gameServer;
+        }
 
         // ---- Internal ----
-        public class mInternalResources
+        public class Internal
         {
-            public Dictionary<ulong, Player> Players = new Dictionary<ulong, Player>(254);
+            // ---- Variables ---- 
+            public ulong ServerHash;
+            public bool IsConnected;
+            public IPAddress GameIP;
+            public int GamePort;
+            public TcpClient Socket;
+            public Func<GameServer<TPlayer>, Internal, Common.Serialization.Stream, Task> mExecutionFunc;
+            public bool IsPasswordProtected;
+            public string ServerName;
+            public string Gamemode;
+            public string Map;
+            public MapSize MapSize;
+            public MapDayNight DayNight;
+            public int CurrentPlayers;
+            public int InQueuePlayers;
+            public int MaxPlayers;
+            public string LoadingScreenText;
+            public string ServerRulesText;
+            public ServerSettings<TPlayer> Settings;
+            public MapRotation<TPlayer> MapRotation;
+            public GamemodeRotation<TPlayer> GamemodeRotation;
+            public string TerminationReason;
+            public bool ReconnectFlag;
 
-            public mRoomSettings Settings = new mRoomSettings();
+            // ---- Private Variables ---- 
+            public byte[] mKeepAliveBuffer;
+            public Common.Serialization.Stream mWriteStream;
+            public Common.Serialization.Stream mReadStream;
+            public uint mReadPackageSize;
+            public long mLastPackageReceived;
+            public long mLastPackageSent;
+            public bool mWantsToCloseConnection;
+            public StringBuilder mBuilder;
+
+            public Internal()
+            {
+                this.TerminationReason = string.Empty;
+                this.mWriteStream = new Common.Serialization.Stream()
+                {
+                    Buffer = new byte[Const.MaxNetworkPackageSize],
+                    InPool = false,
+                    ReadPosition = 0,
+                    WritePosition = 0,
+                };
+                this.mReadStream = new Common.Serialization.Stream()
+                {
+                    Buffer = new byte[Const.MaxNetworkPackageSize],
+                    InPool = false,
+                    ReadPosition = 0,
+                    WritePosition = 0,
+                };
+                this.mKeepAliveBuffer = new byte[4]
+                {
+                0,0,0,0,
+                };
+                this.mLastPackageReceived = Extentions.TickCount;
+                this.mLastPackageSent = Extentions.TickCount;
+                this.mBuilder = new StringBuilder(4096);
+
+                this.Settings = new ServerSettings<TPlayer>(this);
+                this.MapRotation = new MapRotation<TPlayer>(this);
+                this.GamemodeRotation = new GamemodeRotation<TPlayer>(this);
+            }
+
+            // ---- Players In Room ---- 
+            public Dictionary<ulong, Player<TPlayer>> Players = new Dictionary<ulong, Player<TPlayer>>(254);
+
+            // ---- Room Settings ---- 
+            public mRoomSettings _Settings = new mRoomSettings();
             public bool IsDirtySettings;
 
-            public HashSet<string> MapRotation = new HashSet<string>(8);
+            // ---- Map Rotation ---- 
+            public HashSet<string> _MapRotation = new HashSet<string>(8);
             public bool MapRotationDirty = false;
 
-            public HashSet<string> GamemodeRotation = new HashSet<string>(8);
+            // ---- Gamemode Rotation ---- 
+            public HashSet<string> _GamemodeRotation = new HashSet<string>(8);
             public bool GamemodeRotationDirty = false;
 
-            public void AddPlayer<TPlayer>(TPlayer player) where TPlayer : Player
+            // ---- Public Functions ---- 
+            public void Set(Func<GameServer<TPlayer>, Internal, Common.Serialization.Stream, Task> func, TcpClient socket, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
+            {
+                this.ServerHash = ((ulong)port << 32) | (ulong)iP.ToUInt();
+                this.IsConnected = true;
+                this.GameIP = iP;
+                this.GamePort = port;
+                this.Socket = socket;
+                this.mExecutionFunc = func;
+                this.IsPasswordProtected = isPasswordProtected;
+                this.ServerName = serverName;
+                this.Gamemode = gamemode;
+                this.Map = map;
+                this.MapSize = mapSize;
+                this.DayNight = dayNight;
+                this.CurrentPlayers = currentPlayers;
+                this.InQueuePlayers = inQueuePlayers;
+                this.MaxPlayers = maxPlayers;
+                this.LoadingScreenText = loadingScreenText;
+                this.ServerRulesText = serverRulesText;
+
+                this.Settings.Reset();
+                this._Settings.Reset();
+                this.IsDirtySettings = false;
+
+                this.MapRotation.Reset();
+                this._MapRotation.Clear();
+                this.MapRotationDirty = false;
+
+                this.GamemodeRotation.Reset();
+                this._GamemodeRotation.Clear();
+                this.GamemodeRotationDirty = false;
+
+                this.TerminationReason = string.Empty;
+                this.ReconnectFlag = false;
+
+                this.mWriteStream.Reset();
+                this.mReadStream.Reset();
+                this.mReadPackageSize = 0;
+                this.mLastPackageReceived = Extentions.TickCount;
+                this.mLastPackageSent = Extentions.TickCount;
+                this.mWantsToCloseConnection = false;
+                this.mBuilder.Clear();
+            }
+            public void AddPlayer(Player<TPlayer> player)
             {
                 lock (Players)
                 {
@@ -515,12 +628,12 @@ namespace BattleBitAPI.Server
                     Players.Add(player.SteamID, player);
                 }
             }
-            public void RemovePlayer<TPlayer>(TPlayer player) where TPlayer : Player
+            public void RemovePlayer<TPlayer>(TPlayer player) where TPlayer : Player<TPlayer>
             {
                 lock (Players)
                     Players.Remove(player.SteamID);
             }
-            public bool TryGetPlayer(ulong steamID, out Player result)
+            public bool TryGetPlayer(ulong steamID, out Player<TPlayer> result)
             {
                 lock (Players)
                     return Players.TryGetValue(steamID, out result);
@@ -575,6 +688,23 @@ namespace BattleBitAPI.Server
                 this.EngineerLimitPerSquad = ser.ReadInt8();
                 this.SupportLimitPerSquad = ser.ReadInt8();
                 this.ReconLimitPerSquad = ser.ReadInt8();
+            }
+            public void Reset()
+            {
+                this.DamageMultiplier = 1.0f;
+                this.BleedingEnabled = true;
+                this.StamineEnabled = false;
+                this.FriendlyFireEnabled = false;
+                this.HideMapVotes = true;
+                this.OnlyWinnerTeamCanVote = false;
+                this.HitMarkersEnabled = true;
+                this.PointLogEnabled = true;
+                this.SpectatorEnabled = true;
+
+                this.MedicLimitPerSquad = 8;
+                this.EngineerLimitPerSquad = 8;
+                this.SupportLimitPerSquad = 8;
+                this.ReconLimitPerSquad = 8;
             }
         }
     }

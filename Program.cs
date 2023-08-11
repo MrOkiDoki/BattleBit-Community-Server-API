@@ -1,22 +1,39 @@
 ﻿using BattleBitAPI;
-using BattleBitAPI.Common;
 using BattleBitAPI.Server;
-using System.Diagnostics;
 using System.Net;
-using System.Text;
 
 class Program
 {
     static void Main(string[] args)
     {
-        var listener = new ServerListener<MyPlayer>();
+        var listener = new ServerListener<MyPlayer, MyGameServer>();
         listener.Start(29294);
+        listener.OnGameServerConnecting += OnGameServerConnecting;
 
         Thread.Sleep(-1);
     }
 
+    private static async Task<bool> OnGameServerConnecting(IPAddress ip)
+    {
+        return true;
+    }
 }
-class MyPlayer : Player
+class MyPlayer : Player<MyPlayer>
 {
+    public int NumberOfSpawns = 0;
 
+    public override async Task OnSpawned()
+    {
+        this.NumberOfSpawns++;
+        base.GameServer.CloseConnection();
+
+        await Console.Out.WriteLineAsync("Spawn: " + this.NumberOfSpawns);
+    }
+}
+class MyGameServer : GameServer<MyPlayer>
+{
+    public override async Task OnConnected()
+    {
+        Console.WriteLine(base.GameIP + " connected");
+    }
 }
