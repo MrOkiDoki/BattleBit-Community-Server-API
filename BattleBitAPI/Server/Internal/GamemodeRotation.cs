@@ -23,7 +23,7 @@
             lock (mResources._GamemodeRotation)
                 if (!mResources._GamemodeRotation.Remove(gamemode))
                     return false;
-            mResources.GamemodeRotationDirty = true;
+            mResources.IsDirtyGamemodeRotation = true;
             return true;
         }
         public bool AddToRotation(string gamemode)
@@ -31,7 +31,7 @@
             lock (mResources._GamemodeRotation)
                 if (!mResources._GamemodeRotation.Add(gamemode))
                     return false;
-            mResources.GamemodeRotationDirty = true;
+            mResources.IsDirtyGamemodeRotation = true;
             return true;
         }
 

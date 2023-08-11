@@ -354,7 +354,7 @@ namespace BattleBitAPI.Server
                             readStream.Reset();
                             if (!await networkStream.TryRead(readStream, roomSize, source.Token))
                                 throw new Exception("Unable to read the room");
-                            resources._Settings.Read(readStream);
+                            resources._RoomSettings.Read(readStream);
                         }
 
                         //Map&gamemode rotation

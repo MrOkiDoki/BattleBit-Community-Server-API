@@ -27,7 +27,7 @@
             lock (mResources._MapRotation)
                 if (!mResources._MapRotation.Remove(map))
                     return false;
-            mResources.MapRotationDirty = true;
+            mResources.IsDirtyMapRotation = true;
             return true;
         }
         public bool AddToRotation(string map)
@@ -37,7 +37,7 @@
             lock (mResources._MapRotation)
                 if (!mResources._MapRotation.Add(map))
                     return false;
-            mResources.MapRotationDirty = true;
+            mResources.IsDirtyMapRotation = true;
             return true;
         }
 

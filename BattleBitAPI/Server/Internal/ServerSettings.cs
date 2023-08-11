@@ -10,74 +10,74 @@
 
         public float DamageMultiplier
         {
-            get => mResources._Settings.DamageMultiplier;
+            get => mResources._RoomSettings.DamageMultiplier;
             set
             {
-                mResources._Settings.DamageMultiplier = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.DamageMultiplier = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool BleedingEnabled
         {
-            get => mResources._Settings.BleedingEnabled;
+            get => mResources._RoomSettings.BleedingEnabled;
             set
             {
-                mResources._Settings.BleedingEnabled = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.BleedingEnabled = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool StamineEnabled
         {
-            get => mResources._Settings.StamineEnabled;
+            get => mResources._RoomSettings.StamineEnabled;
             set
             {
-                mResources._Settings.StamineEnabled = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.StamineEnabled = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool FriendlyFireEnabled
         {
-            get => mResources._Settings.FriendlyFireEnabled;
+            get => mResources._RoomSettings.FriendlyFireEnabled;
             set
             {
-                mResources._Settings.FriendlyFireEnabled = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.FriendlyFireEnabled = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool OnlyWinnerTeamCanVote
         {
-            get => mResources._Settings.OnlyWinnerTeamCanVote;
+            get => mResources._RoomSettings.OnlyWinnerTeamCanVote;
             set
             {
-                mResources._Settings.OnlyWinnerTeamCanVote = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.OnlyWinnerTeamCanVote = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool HitMarkersEnabled
         {
-            get => mResources._Settings.HitMarkersEnabled;
+            get => mResources._RoomSettings.HitMarkersEnabled;
             set
             {
-                mResources._Settings.HitMarkersEnabled = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.HitMarkersEnabled = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool PointLogEnabled
         {
-            get => mResources._Settings.PointLogEnabled;
+            get => mResources._RoomSettings.PointLogEnabled;
             set
             {
-                mResources._Settings.PointLogEnabled = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.PointLogEnabled = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
         public bool SpectatorEnabled
         {
-            get => mResources._Settings.SpectatorEnabled;
+            get => mResources._RoomSettings.SpectatorEnabled;
             set
             {
-                mResources._Settings.SpectatorEnabled = value;
-                mResources.IsDirtySettings = true;
+                mResources._RoomSettings.SpectatorEnabled = value;
+                mResources.IsDirtyRoomSettings = true;
             }
         }
 
