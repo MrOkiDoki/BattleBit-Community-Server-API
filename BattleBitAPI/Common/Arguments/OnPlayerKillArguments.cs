@@ -2,7 +2,7 @@
 
 namespace BattleBitAPI.Common
 {
-    public struct OnPlayerKillArguments<TPlayer> where TPlayer : Player
+    public class OnPlayerKillArguments<TPlayer> where TPlayer : Player
     {
         public TPlayer Killer;
         public Vector3 KillerPosition;

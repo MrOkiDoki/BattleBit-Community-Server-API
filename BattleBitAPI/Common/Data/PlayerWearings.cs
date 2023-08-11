@@ -1,6 +1,6 @@
 ﻿namespace BattleBitAPI.Common
 {
-    public struct PlayerWearings
+    public class PlayerWearings
     {
         public string Head;
         public string Chest;

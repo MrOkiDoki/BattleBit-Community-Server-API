@@ -1,6 +1,6 @@
 ﻿namespace BattleBitAPI.Common
 {
-    public struct PlayerLoadout
+    public class PlayerLoadout
     {
         public WeaponItem PrimaryWeapon;
         public WeaponItem SecondaryWeapon;
