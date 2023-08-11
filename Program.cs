@@ -2,6 +2,7 @@
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
 using System.Threading.Channels;
+using System.Xml;
 
 class Program
 {
@@ -15,38 +16,38 @@ class Program
 }
 class MyPlayer : Player<MyPlayer>
 {
-
+    public int NumberOfKills;
 }
 class MyGameServer : GameServer<MyPlayer>
 {
-    public List<string> ChatMessages = new List<string>();
-
-    public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
+    public WeaponItem[] WeaponList = new WeaponItem[]
     {
-        return true;
-    }
-    public override async Task OnConnected()
-    {
-        await Console.Out.WriteLineAsync(this.GameIP + " Connected");
-    }
-    public override async Task OnDisconnected()
-    {
-        await Console.Out.WriteLineAsync(this.GameIP + " Disconnected");
-    }
+        new WeaponItem(){ Tool = Weapons.M4A1, MainSight = Attachments._6xScope},
+        new WeaponItem(){ Tool = Weapons.SVD, MainSight = Attachments._6xScope},
+        new WeaponItem(){ Tool = Weapons.SCARH, MainSight = Attachments._6xScope},
+        new WeaponItem(){ Tool = Weapons.ScorpionEVO, MainSight = Attachments._6xScope},
+        new WeaponItem(){ Tool = Weapons.M249, MainSight = Attachments._6xScope},
+        new WeaponItem(){ Tool = Weapons.Groza, MainSight = Attachments._6xScope},
+        new WeaponItem(){ Tool = Weapons.Glock18, MainSight = Attachments._6xScope},
+    };
 
     public override async Task OnTick()
     {
-        if (RoundSettings.State == GameState.WaitingForPlayers)
-        {
-            int numberOfPeopleInServer = this.CurrentPlayers;
-            if (numberOfPeopleInServer > 4)
-            {
-                ForceStartGame();
-            }
-        }
-        else if (RoundSettings.State == GameState.Playing)
-        {
+        if (this.RoundSettings.State == GameState.WaitingForPlayers)
+            ForceStartGame();
 
-        }
+        await Task.Delay(1000);
+    }
+
+    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
+    {
+        request.Loadout.PrimaryWeapon = WeaponList[player.NumberOfKills];
+        return request;
+    }
+
+    public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> args)
+    {
+        args.Killer.NumberOfKills++;
+        args.Killer.SetPrimaryWeapon(WeaponList[args.Killer.NumberOfKills], 0);
     }
 }

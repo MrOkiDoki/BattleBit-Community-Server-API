@@ -385,6 +385,14 @@ namespace BattleBitAPI.Server
                             }
                         }
 
+                        //Round Settings
+                        {
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, GameServer<TPlayer>.mRoundSettings.Size, source.Token))
+                                throw new Exception("Unable to read the round settings");
+                            resources._RoundSettings.Read(readStream);
+                        }
+
                         //Client Count
                         int clientCount = 0;
                         {
@@ -975,6 +983,26 @@ namespace BattleBitAPI.Server
                                     if (stream.TryReadString(out var map))
                                         resources._GamemodeRotation.Add(map);
                                 }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.NotifyNewRoundState:
+                    {
+                        if (stream.CanRead(GameServer<TPlayer>.mRoundSettings.Size))
+                        {
+                            var oldState = resources._RoundSettings.State;
+                            resources._RoundSettings.Read(stream);
+                            var newState = resources._RoundSettings.State;
+
+                            if (newState != oldState)
+                            {
+                                server.OnGameStateChanged(oldState, newState);
+
+                                if (newState == GameState.Playing)
+                                    server.OnRoundStarted();
+                                else if (newState == GameState.EndingGame)
+                                    server.OnRoundEnded();
                             }
                         }
                         break;

@@ -1,4 +1,5 @@
 ﻿using BattleBitAPI.Common;
+using BattleBitAPI.Networking;
 using BattleBitAPI.Server;
 using System.Net;
 using System.Numerics;
@@ -83,7 +84,62 @@ namespace BattleBitAPI
         {
             GameServer.SpawnPlayer(this, loadout, wearings, position, lookDirection, stand, spawnProtection);
         }
-
+        public void SetHP(float newHP)
+        {
+            GameServer.SetHP(this, newHP);
+        }
+        public void GiveDamage(float damage)
+        {
+            GameServer.GiveDamage(this, damage);
+        }
+        public void Heal(float hp)
+        {
+            GameServer.Heal(this, hp);
+        }
+        public void SetRunningSpeedMultiplier(float value)
+        {
+            GameServer.SetRunningSpeedMultiplier(this, value);
+        }
+        public void SetReceiveDamageMultiplier(float value)
+        {
+            GameServer.SetReceiveDamageMultiplier(this, value);
+        }
+        public void SetGiveDamageMultiplier(float value)
+        {
+            GameServer.SetGiveDamageMultiplier(this, value);
+        }
+        public void SetJumpMultiplier(float value)
+        {
+            GameServer.SetJumpMultiplier(this, value);
+        }
+        public void SetFallDamageMultiplier(float value)
+        {
+            GameServer.SetFallDamageMultiplier(this, value);
+        }
+        public void SetPrimaryWeapon(WeaponItem item, int extraMagazines,bool clear=false)
+        {
+            GameServer.SetPrimaryWeapon(this, item, extraMagazines, clear);
+        }
+        public void SetSecondaryWeapon(WeaponItem item, int extraMagazines, bool clear = false)
+        {
+            GameServer.SetSecondaryWeapon(this, item, extraMagazines, clear);
+        }
+        public void SetFirstAidGadget(string item, int extra, bool clear = false)
+        {
+            GameServer.SetFirstAid(this, item, extra, clear);
+        }
+        public void SetLightGadget(string item, int extra, bool clear = false)
+        {
+            GameServer.SetLightGadget(this, item, extra, clear);
+        }
+        public void SetHeavyGadget(string item, int extra, bool clear = false)
+        {
+            GameServer.SetHeavyGadget(this, item, extra, clear);
+        }
+        public void SetThrowable(string item, int extra, bool clear = false)
+        {
+            GameServer.SetThrowable(this, item, extra, clear);
+        }
         public override string ToString()
         {
             return this.Name + " (" + this.SteamID + ")";

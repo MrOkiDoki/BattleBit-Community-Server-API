@@ -12,6 +12,9 @@
         SpawnPlayer = 12,
         SetNewRoomSettings = 13,
         RespondPlayerMessage = 14,
+        SetNewRoundState = 15,
+        SetPlayerWeapon = 16,
+        SetPlayerGadget = 17,
 
         PlayerConnected = 50,
         PlayerDisconnected = 51,
@@ -30,5 +33,6 @@
         OnPlayerDie = 64,
         NotifyNewMapRotation = 65,
         NotifyNewGamemodeRotation = 66,
+        NotifyNewRoundState = 67,
     }
 }

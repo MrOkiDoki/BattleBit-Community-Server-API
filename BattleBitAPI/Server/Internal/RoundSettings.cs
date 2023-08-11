@@ -14,7 +14,7 @@ namespace BattleBitAPI.Server
         {
             get => this.mResources._RoundSettings.State;
         }
-        public int TeamATickets
+        public double TeamATickets
         {
             get => this.mResources._RoundSettings.TeamATickets;
             set
@@ -23,16 +23,7 @@ namespace BattleBitAPI.Server
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
-        public int TeamAMaxTickets
-        {
-            get => this.mResources._RoundSettings.TeamAMaxTickets;
-            set
-            {
-                this.mResources._RoundSettings.TeamAMaxTickets = value;
-                this.mResources.IsDirtyRoundSettings = true;
-            }
-        }
-        public int TeamBTickets
+        public double TeamBTickets
         {
             get => this.mResources._RoundSettings.TeamBTickets;
             set
@@ -41,12 +32,12 @@ namespace BattleBitAPI.Server
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
-        public int TeamBMaxTickets
+        public double MaxTickets
         {
-            get => this.mResources._RoundSettings.TeamBMaxTickets;
+            get => this.mResources._RoundSettings.MaxTickets;
             set
             {
-                this.mResources._RoundSettings.TeamBTickets = value;
+                this.mResources._RoundSettings.MaxTickets = value;
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
@@ -59,12 +50,12 @@ namespace BattleBitAPI.Server
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
-        public int SecondsLeftToEndOfRound
+        public int SecondsLeft
         {
-            get => this.mResources._RoundSettings.SecondsLeftToEndOfRound;
+            get => this.mResources._RoundSettings.SecondsLeft;
             set
             {
-                this.mResources._RoundSettings.SecondsLeftToEndOfRound = value;
+                this.mResources._RoundSettings.SecondsLeft = value;
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }

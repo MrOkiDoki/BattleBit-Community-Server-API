@@ -126,224 +126,223 @@
             this.HeavyGadgetExtra = ser.ReadInt8();
             this.ThrowableExtra = ser.ReadInt8();
         }
+    }
+    public struct WeaponItem
+    {
+        public string ToolName;
+        public string MainSightName;
+        public string TopSightName;
+        public string CantedSightName;
+        public string BarrelName;
+        public string SideRailName;
+        public string UnderRailName;
+        public string BoltActionName;
+        public byte SkinIndex;
+        public byte MagazineIndex;
 
-        public struct WeaponItem
+        public Weapon Tool
         {
-            public string ToolName;
-            public string MainSightName;
-            public string TopSightName;
-            public string CantedSightName;
-            public string BarrelName;
-            public string SideRailName;
-            public string UnderRailName;
-            public string BoltActionName;
-            public byte SkinIndex;
-            public byte MagazineIndex;
+            get
+            {
+                if (Weapons.TryFind(ToolName, out var weapon))
+                    return weapon;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.ToolName = "none";
+                else
+                    this.ToolName = value.Name;
+            }
+        }
+        public Attachment MainSight
+        {
+            get
+            {
+                if (Attachments.TryFind(MainSightName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.MainSightName = "none";
+                else
+                    this.MainSightName = value.Name;
+            }
+        }
+        public Attachment TopSight
+        {
+            get
+            {
+                if (Attachments.TryFind(TopSightName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.TopSightName = "none";
+                else
+                    this.TopSightName = value.Name;
+            }
+        }
+        public Attachment CantedSight
+        {
+            get
+            {
+                if (Attachments.TryFind(CantedSightName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.CantedSightName = "none";
+                else
+                    this.CantedSightName = value.Name;
+            }
+        }
+        public Attachment Barrel
+        {
+            get
+            {
+                if (Attachments.TryFind(BarrelName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.BarrelName = "none";
+                else
+                    this.BarrelName = value.Name;
+            }
+        }
+        public Attachment SideRail
+        {
+            get
+            {
+                if (Attachments.TryFind(SideRailName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.SideRailName = "none";
+                else
+                    this.SideRailName = value.Name;
+            }
+        }
+        public Attachment UnderRail
+        {
+            get
+            {
+                if (Attachments.TryFind(UnderRailName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.UnderRailName = "none";
+                else
+                    this.UnderRailName = value.Name;
+            }
+        }
+        public Attachment BoltAction
+        {
+            get
+            {
+                if (Attachments.TryFind(BoltActionName, out var attachment))
+                    return attachment;
+                return null;
+            }
+            set
+            {
+                if (value == null)
+                    this.BoltActionName = "none";
+                else
+                    this.BoltActionName = value.Name;
+            }
+        }
 
-            public Weapon Tool
+        public bool HasAttachment(Attachment attachment)
+        {
+            switch (attachment.AttachmentType)
             {
-                get
-                {
-                    if (Weapons.TryFind(ToolName, out var weapon))
-                        return weapon;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.ToolName = "none";
-                    else
-                        this.ToolName = value.Name;
-                }
+                case AttachmentType.MainSight:
+                    return this.MainSight == attachment;
+                case AttachmentType.TopSight:
+                    return this.TopSight == attachment;
+                case AttachmentType.CantedSight:
+                    return this.CantedSight == attachment;
+                case AttachmentType.Barrel:
+                    return this.Barrel == attachment;
+                case AttachmentType.UnderRail:
+                    return this.Barrel == attachment;
+                case AttachmentType.SideRail:
+                    return this.SideRail == attachment;
+                case AttachmentType.Bolt:
+                    return this.BoltAction == attachment;
             }
-            public Attachment MainSight
+            return false;
+        }
+        public void SetAttachment(Attachment attachment)
+        {
+            switch (attachment.AttachmentType)
             {
-                get
-                {
-                    if (Attachments.TryFind(MainSightName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.MainSightName = "none";
-                    else
-                        this.MainSightName = value.Name;
-                }
+                case AttachmentType.MainSight:
+                    this.MainSight = attachment;
+                    break;
+                case AttachmentType.TopSight:
+                    this.TopSight = attachment;
+                    break;
+                case AttachmentType.CantedSight:
+                    this.CantedSight = attachment;
+                    break;
+                case AttachmentType.Barrel:
+                    this.Barrel = attachment;
+                    break;
+                case AttachmentType.UnderRail:
+                    this.Barrel = attachment;
+                    break;
+                case AttachmentType.SideRail:
+                    this.SideRail = attachment;
+                    break;
+                case AttachmentType.Bolt:
+                    this.BoltAction = attachment;
+                    break;
             }
-            public Attachment TopSight
-            {
-                get
-                {
-                    if (Attachments.TryFind(TopSightName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.TopSightName = "none";
-                    else
-                        this.TopSightName = value.Name;
-                }
-            }
-            public Attachment CantedSight
-            {
-                get
-                {
-                    if (Attachments.TryFind(CantedSightName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.CantedSightName = "none";
-                    else
-                        this.CantedSightName = value.Name;
-                }
-            }
-            public Attachment Barrel
-            {
-                get
-                {
-                    if (Attachments.TryFind(BarrelName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.BarrelName = "none";
-                    else
-                        this.BarrelName = value.Name;
-                }
-            }
-            public Attachment SideRail
-            {
-                get
-                {
-                    if (Attachments.TryFind(SideRailName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.SideRailName = "none";
-                    else
-                        this.SideRailName = value.Name;
-                }
-            }
-            public Attachment UnderRail
-            {
-                get
-                {
-                    if (Attachments.TryFind(UnderRailName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.UnderRailName = "none";
-                    else
-                        this.UnderRailName = value.Name;
-                }
-            }
-            public Attachment BoltAction
-            {
-                get
-                {
-                    if (Attachments.TryFind(BoltActionName, out var attachment))
-                        return attachment;
-                    return null;
-                }
-                set
-                {
-                    if (value == null)
-                        this.BoltActionName = "none";
-                    else
-                        this.BoltActionName = value.Name;
-                }
-            }
+        }
 
-            public bool HasAttachment(Attachment attachment)
-            {
-                switch (attachment.AttachmentType)
-                {
-                    case AttachmentType.MainSight:
-                        return this.MainSight == attachment;
-                    case AttachmentType.TopSight:
-                        return this.TopSight == attachment;
-                    case AttachmentType.CantedSight:
-                        return this.CantedSight == attachment;
-                    case AttachmentType.Barrel:
-                        return this.Barrel == attachment;
-                    case AttachmentType.UnderRail:
-                        return this.Barrel == attachment;
-                    case AttachmentType.SideRail:
-                        return this.SideRail == attachment;
-                    case AttachmentType.Bolt:
-                        return this.BoltAction == attachment;
-                }
-                return false;
-            }
-            public void SetAttachment(Attachment attachment)
-            {
-                switch (attachment.AttachmentType)
-                {
-                    case AttachmentType.MainSight:
-                        this.MainSight = attachment;
-                        break;
-                    case AttachmentType.TopSight:
-                        this.TopSight = attachment;
-                        break;
-                    case AttachmentType.CantedSight:
-                        this.CantedSight = attachment;
-                        break;
-                    case AttachmentType.Barrel:
-                        this.Barrel = attachment;
-                        break;
-                    case AttachmentType.UnderRail:
-                        this.Barrel = attachment;
-                        break;
-                    case AttachmentType.SideRail:
-                        this.SideRail = attachment;
-                        break;
-                    case AttachmentType.Bolt:
-                        this.BoltAction = attachment;
-                        break;
-                }
-            }
-
-            public void Write(Common.Serialization.Stream ser)
-            {
-                ser.WriteStringItem(this.ToolName);
-                ser.WriteStringItem(this.MainSightName);
-                ser.WriteStringItem(this.TopSightName);
-                ser.WriteStringItem(this.CantedSightName);
-                ser.WriteStringItem(this.BarrelName);
-                ser.WriteStringItem(this.SideRailName);
-                ser.WriteStringItem(this.UnderRailName);
-                ser.WriteStringItem(this.BoltActionName);
-                ser.Write(this.SkinIndex);
-                ser.Write(this.MagazineIndex);
-            }
-            public void Read(Common.Serialization.Stream ser)
-            {
-                ser.TryReadString(out this.ToolName);
-                ser.TryReadString(out this.MainSightName);
-                ser.TryReadString(out this.TopSightName);
-                ser.TryReadString(out this.CantedSightName);
-                ser.TryReadString(out this.BarrelName);
-                ser.TryReadString(out this.SideRailName);
-                ser.TryReadString(out this.UnderRailName);
-                ser.TryReadString(out this.BoltActionName);
-                this.SkinIndex = ser.ReadInt8();
-                this.MagazineIndex = ser.ReadInt8();
-            }
+        public void Write(Common.Serialization.Stream ser)
+        {
+            ser.WriteStringItem(this.ToolName);
+            ser.WriteStringItem(this.MainSightName);
+            ser.WriteStringItem(this.TopSightName);
+            ser.WriteStringItem(this.CantedSightName);
+            ser.WriteStringItem(this.BarrelName);
+            ser.WriteStringItem(this.SideRailName);
+            ser.WriteStringItem(this.UnderRailName);
+            ser.WriteStringItem(this.BoltActionName);
+            ser.Write(this.SkinIndex);
+            ser.Write(this.MagazineIndex);
+        }
+        public void Read(Common.Serialization.Stream ser)
+        {
+            ser.TryReadString(out this.ToolName);
+            ser.TryReadString(out this.MainSightName);
+            ser.TryReadString(out this.TopSightName);
+            ser.TryReadString(out this.CantedSightName);
+            ser.TryReadString(out this.BarrelName);
+            ser.TryReadString(out this.SideRailName);
+            ser.TryReadString(out this.UnderRailName);
+            ser.TryReadString(out this.BoltActionName);
+            this.SkinIndex = ser.ReadInt8();
+            this.MagazineIndex = ser.ReadInt8();
         }
     }
 }

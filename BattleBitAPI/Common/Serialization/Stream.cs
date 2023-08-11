@@ -99,10 +99,10 @@ namespace BattleBitAPI.Common.Serialization
         }
         public unsafe void Write(double value)
         {
-            EnsureWriteBufferSize(16);
+            EnsureWriteBufferSize(8);
             fixed (byte* ptr = &Buffer[WritePosition])
                 *((double*)ptr) = value;
-            WritePosition += 16;
+            WritePosition += 8;
         }
         public unsafe void Write(float value)
         {
@@ -423,7 +423,7 @@ namespace BattleBitAPI.Common.Serialization
             {
                 value = *((double*)ptr);
             }
-            ReadPosition += 16;
+            ReadPosition += 8;
 
             return value;
         }
