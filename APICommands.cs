@@ -8,7 +8,7 @@ public abstract class APICommand
     public string CommandPrefix;
     public string Help;
 
-    public Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public virtual Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         return null;
     }
@@ -25,7 +25,7 @@ public class HealCommand : APICommand
     }
 
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -48,7 +48,7 @@ public class KillCommand : APICommand
     }
 
 
-    public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -67,7 +67,7 @@ public class GrenadeCommand : APICommand
     public string CommandPrefix = "!grenade";
     public string Help = "'steamid': spawns live grenade on specific player";
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -89,7 +89,7 @@ public class TeleportCommand : APICommand
         Help = "'steamid' 'vector': Teleports specific player to vector location";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var vectorStr = splits[2].Split(",");
@@ -120,7 +120,7 @@ public class SpeedCommand : APICommand
         Help = "'steamid' 'amount': Sets speed multiplier of specific player to the specified amount";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -142,7 +142,7 @@ public class ChangeAttachmentCommand : APICommand
         Help = "'steamid' 'pri=Attachment' 'sec=Attachment': Change attachments of specific player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -165,7 +165,7 @@ public class ChangeWeaponCommand : APICommand
         Help = "'steamid' 'pri=Weapon' 'sec=Weapon': Change weapons of specific player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -188,7 +188,7 @@ public class ForceStartCommand : APICommand
         Help = ": Forces the game to start";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var c = new Command
         {
@@ -208,7 +208,7 @@ public class HelpCommand : APICommand
         Help = ": Lists all commands";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var c = new Command
         {
@@ -228,7 +228,7 @@ public class RevealCommand : APICommand
         Help = "'steamid': Reveal information about the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -249,7 +249,7 @@ public class ChangeDamageCommand : APICommand
         Help = "'steamid' 'amount': Change the damage of the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -271,7 +271,7 @@ public class ChangeReceivedDamageCommand : APICommand
         Help = "'steamid' 'amount': Change the received damage of the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -293,7 +293,7 @@ public class ChangeAmmoCommand : APICommand
         Help = "'steamid' 'amount': Change the ammo of the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -315,7 +315,7 @@ public class SetStreamerCommand : APICommand
         Help = "'steamid': Set the specified player as the streamer";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -336,7 +336,7 @@ public class RemoveStreamerCommand : APICommand
         Help = "'steamid': Remove the streamer status from the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -357,7 +357,7 @@ public class OpCommand : APICommand
         Help = "'steamid': Grant operator privileges to the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
@@ -378,7 +378,7 @@ public class DeopCommand : APICommand
         Help = "'steamid': Revoke operator privileges from the specified player";
     }
 
-    public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         var splits = msg.Split(" ");
         var c = new Command
