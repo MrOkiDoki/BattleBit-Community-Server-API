@@ -39,7 +39,7 @@ namespace BattleBitAPI.Server
         /// <remarks>
         /// GameServer: Game server that is connecting.<br/>
         /// </remarks>
-        public Func<GameServer<TPlayer>, Task> OnGameServerConnected { get; set; }
+        public Func<TGameServer, Task> OnGameServerConnected { get; set; }
 
         /// <summary>
         /// Fired when a game server reconnects. (When game server connects while a socket is already open)
@@ -48,7 +48,7 @@ namespace BattleBitAPI.Server
         /// <remarks>
         /// GameServer: Game server that is reconnecting.<br/>
         /// </remarks>
-        public Func<GameServer<TPlayer>, Task> OnGameServerReconnected { get; set; }
+        public Func<TGameServer, Task> OnGameServerReconnected { get; set; }
 
         /// <summary>
         /// Fired when a game server disconnects. Check (GameServer.TerminationReason) to see the reason.
@@ -57,7 +57,7 @@ namespace BattleBitAPI.Server
         /// <remarks>
         /// GameServer: Game server that disconnected.<br/>
         /// </remarks>
-        public Func<GameServer<TPlayer>, Task> OnGameServerDisconnected { get; set; }
+        public Func<TGameServer, Task> OnGameServerDisconnected { get; set; }
 
         // --- Private --- 
         private TcpListener mSocket;

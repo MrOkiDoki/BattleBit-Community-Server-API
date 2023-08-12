@@ -307,7 +307,7 @@
                     this.Barrel = attachment;
                     break;
                 case AttachmentType.UnderRail:
-                    this.Barrel = attachment;
+                    this.UnderRail = attachment;
                     break;
                 case AttachmentType.SideRail:
                     this.SideRail = attachment;
