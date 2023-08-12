@@ -38,6 +38,7 @@ class MyGameServer : GameServer<MyPlayer>
 
         string[] splits = msg.Split(" ");
         var c = new Command(); // just to test replace with argument parsing for now
+        c.StreamerID = player.SteamID;
         switch (splits[0])
         {
             case "heal":
