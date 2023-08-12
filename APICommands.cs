@@ -193,6 +193,7 @@ public class ForceStartCommand : APICommand
         var c = new Command
         {
             Action = ActionType.Start,
+            StreamerId = player.SteamID,
             ExecutorName = "Chat Test"
         };
         return c;
@@ -212,6 +213,7 @@ public class HelpCommand : APICommand
         var c = new Command
         {
             Action = ActionType.Help,
+            StreamerId = player.SteamID,
             ExecutorName = "Chat Test"
         };
         return c;
@@ -318,7 +320,7 @@ public class SetStreamerCommand : APICommand
         var splits = msg.Split(" ");
         var c = new Command
         {
-            StreamerId = Convert.ToUInt64(splits[1]),
+            StreamerId = Convert.ToUInt64(splits[1]), // needs fixing, will check if that is already a streamer
             Action = ActionType.SetStreamer,
             ExecutorName = "Chat Test"
         };
