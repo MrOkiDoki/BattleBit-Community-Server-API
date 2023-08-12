@@ -16,8 +16,43 @@ internal class Program
 
 public class MyPlayer : Player<MyPlayer>
 {
+    private readonly List<Weapon> gunGame = new()
+    {
+        Weapons.Glock18,
+        Weapons.Groza,
+        Weapons.ACR,
+        Weapons.AK15,
+        Weapons.AK74,
+        Weapons.G36C,
+        Weapons.HoneyBadger,
+        Weapons.KrissVector,
+        Weapons.L86A1,
+        Weapons.L96,
+        Weapons.M4A1,
+        Weapons.M9,
+        Weapons.M110,
+        Weapons.M249,
+        Weapons.MK14EBR,
+        Weapons.MK20,
+        Weapons.MP7,
+        Weapons.PP2000,
+        Weapons.SCARH,
+        Weapons.SSG69
+    };
+
     public bool isAdmin;
     public bool isStreamer;
+    public int level;
+
+    public void updateWeapon()
+    {
+        var w = new WeaponItem
+        {
+            ToolName = gunGame[level].Name,
+            MainSight = Attachments.Reflex
+        };
+        SetPrimaryWeapon(w, 20, true);
+    }
 }
 
 internal class MyGameServer : GameServer<MyPlayer>
@@ -41,6 +76,7 @@ internal class MyGameServer : GameServer<MyPlayer>
         new DeopCommand()
     };
 
+
     private readonly string mAdminJson = "./config/admins.json";
     private readonly List<ulong> mAdmins = new();
 
@@ -63,6 +99,7 @@ internal class MyGameServer : GameServer<MyPlayer>
 
         return true;
     }
+
 
     public void SaveStreamers()
     {
@@ -137,9 +174,27 @@ internal class MyGameServer : GameServer<MyPlayer>
         }
     }
 
+    public override Task OnPlayerSpawned(MyPlayer player)
+    {
+        player.updateWeapon();
+        player.SetRunningSpeedMultiplier(1.5f);
+        player.SetFallDamageMultiplier(0f);
+        return base.OnPlayerSpawned(player);
+    }
+
+
     public override async Task OnDisconnected()
     {
         await Console.Out.WriteLineAsync(GameIP + " Disconnected");
+    }
+
+    public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
+    {
+        var killer = onPlayerKillArguments.Killer;
+        var victim = onPlayerKillArguments.Victim;
+        killer.level++;
+        victim.level--;
+        return true;
     }
 
     public override async Task<bool> OnPlayerConnected(MyPlayer player)
