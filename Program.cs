@@ -63,9 +63,9 @@ internal class MyGameServer : GameServer<MyPlayer>
     public override Task OnPlayerSpawned(MyPlayer player)
     {
         player.UpdateWeapon();
-        player.SetRunningSpeedMultiplier(1.5f);
+        player.SetRunningSpeedMultiplier(1.25f);
         player.SetFallDamageMultiplier(0f);
-        player.SetJumpMultiplier(2f);
+        player.SetJumpMultiplier(1.5f);
         return base.OnPlayerSpawned(player);
     }
 
