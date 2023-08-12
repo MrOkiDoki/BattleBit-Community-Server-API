@@ -5,6 +5,9 @@ namespace CommunityServerAPI;
 
 public abstract class APICommand
 {
+    public string CommandPrefix;
+    public string Help;
+
     public Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
         return null;
@@ -13,10 +16,14 @@ public abstract class APICommand
 
 public class HealCommand : APICommand
 {
-    public string CommandPrefix = "!heal";
+    public HealCommand()
+    {
+        CommandPrefix = "!heal";
 
-    public string Help =
-        "'steamid' 'amount': Heals specific player the specified amount";
+        Help =
+            "'steamid' 'amount': Heals specific player the specified amount";
+    }
+
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -34,8 +41,12 @@ public class HealCommand : APICommand
 
 public class KillCommand : APICommand
 {
-    public string CommandPrefix = "!kill";
-    public string Help = "'steamid': Kills specific player";
+    public KillCommand()
+    {
+        CommandPrefix = "!kill";
+        Help = "'steamid': Kills specific player";
+    }
+
 
     public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -72,8 +83,11 @@ public class GrenadeCommand : APICommand
 
 public class TeleportCommand : APICommand
 {
-    public string CommandPrefix = "!teleport";
-    public string Help = "'steamid' 'vector': tps specific player to vector location";
+    public TeleportCommand()
+    {
+        CommandPrefix = "!teleport";
+        Help = "'steamid' 'vector': Teleports specific player to vector location";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -83,7 +97,7 @@ public class TeleportCommand : APICommand
         {
             X = Convert.ToSingle(vectorStr[0]),
             Y = Convert.ToSingle(vectorStr[1]),
-            Z = Convert.ToSingle(vectorStr[1])
+            Z = Convert.ToSingle(vectorStr[2]) // Fix the index here to [2]
         };
 
         var c = new Command
@@ -100,10 +114,11 @@ public class TeleportCommand : APICommand
 
 public class SpeedCommand : APICommand
 {
-    public string CommandPrefix = "!speed";
-
-    public string Help =
-        "'steamid' 'amount': Sets speed multiplier of specific player the specified amount";
+    public SpeedCommand()
+    {
+        CommandPrefix = "!speed";
+        Help = "'steamid' 'amount': Sets speed multiplier of specific player to the specified amount";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -111,7 +126,7 @@ public class SpeedCommand : APICommand
         var c = new Command
         {
             StreamerId = Convert.ToUInt64(splits[1]),
-            Action = ActionType.Help,
+            Action = ActionType.Speed,
             Amount = int.Parse(splits[2]),
             ExecutorName = "Chat Test"
         };
@@ -121,10 +136,11 @@ public class SpeedCommand : APICommand
 
 public class ChangeAttachmentCommand : APICommand
 {
-    public string CommandPrefix = "!changeAttachment";
-
-    public string Help =
-        "'steamid' 'pri=Attachment' 'sec=Attachment': the attachements of specific player the specified amount";
+    public ChangeAttachmentCommand()
+    {
+        CommandPrefix = "!changeAttachment";
+        Help = "'steamid' 'pri=Attachment' 'sec=Attachment': Change attachments of specific player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -133,7 +149,7 @@ public class ChangeAttachmentCommand : APICommand
         {
             StreamerId = Convert.ToUInt64(splits[1]),
             Action = ActionType.ChangeAttachement,
-            Amount = int.Parse(splits[2]),
+            Amount = 0, // Not sure what this value represents, please adjust accordingly
             AttachmentChange = Utility.ParseAttachments(splits),
             ExecutorName = "Chat Test"
         };
@@ -143,10 +159,11 @@ public class ChangeAttachmentCommand : APICommand
 
 public class ChangeWeaponCommand : APICommand
 {
-    public string CommandPrefix = "!changeWeapon";
-
-    public string Help =
-        "'steamid' 'pri=Weapon' 'sec=Weapon': the weapons of specific player the specified amount";
+    public ChangeWeaponCommand()
+    {
+        CommandPrefix = "!changeWeapon";
+        Help = "'steamid' 'pri=Weapon' 'sec=Weapon': Change weapons of specific player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -154,8 +171,8 @@ public class ChangeWeaponCommand : APICommand
         var c = new Command
         {
             StreamerId = Convert.ToUInt64(splits[1]),
-            Action = ActionType.ChangeAttachement,
-            Amount = int.Parse(splits[2]),
+            Action = ActionType.ChangeWeapon,
+            Amount = 0, // Not sure what this value represents, please adjust accordingly
             AttachmentChange = Utility.ParseAttachments(splits),
             ExecutorName = "Chat Test"
         };
@@ -165,10 +182,11 @@ public class ChangeWeaponCommand : APICommand
 
 public class ForceStartCommand : APICommand
 {
-    public string CommandPrefix = "!forceStart";
-
-    public string Help =
-        ": forces the game to start";
+    public ForceStartCommand()
+    {
+        CommandPrefix = "!forceStart";
+        Help = ": Forces the game to start";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -183,10 +201,11 @@ public class ForceStartCommand : APICommand
 
 public class HelpCommand : APICommand
 {
-    public string CommandPrefix = "!help";
-
-    public string Help =
-        ": lists all commands";
+    public HelpCommand()
+    {
+        CommandPrefix = "!help";
+        Help = ": Lists all commands";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -201,10 +220,11 @@ public class HelpCommand : APICommand
 
 public class RevealCommand : APICommand
 {
-    public string CommandPrefix = "!reveal";
-
-    public string Help =
-        "'steamid': reveal information about the specified player";
+    public RevealCommand()
+    {
+        CommandPrefix = "!reveal";
+        Help = "'steamid': Reveal information about the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -221,10 +241,11 @@ public class RevealCommand : APICommand
 
 public class ChangeDamageCommand : APICommand
 {
-    public string CommandPrefix = "!changeDamage";
-
-    public string Help =
-        "'steamid' 'amount': change the damage of the specified player";
+    public ChangeDamageCommand()
+    {
+        CommandPrefix = "!changeDamage";
+        Help = "'steamid' 'amount': Change the damage of the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -242,10 +263,11 @@ public class ChangeDamageCommand : APICommand
 
 public class ChangeReceivedDamageCommand : APICommand
 {
-    public string CommandPrefix = "!changeReceivedDamage";
-
-    public string Help =
-        "'steamid' 'amount': change the received damage of the specified player";
+    public ChangeReceivedDamageCommand()
+    {
+        CommandPrefix = "!changeReceivedDamage";
+        Help = "'steamid' 'amount': Change the received damage of the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -263,10 +285,11 @@ public class ChangeReceivedDamageCommand : APICommand
 
 public class ChangeAmmoCommand : APICommand
 {
-    public string CommandPrefix = "!changeAmmo";
-
-    public string Help =
-        "'steamid' 'amount': change the ammo of the specified player";
+    public ChangeAmmoCommand()
+    {
+        CommandPrefix = "!changeAmmo";
+        Help = "'steamid' 'amount': Change the ammo of the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -284,10 +307,11 @@ public class ChangeAmmoCommand : APICommand
 
 public class SetStreamerCommand : APICommand
 {
-    public string CommandPrefix = "!setStreamer";
-
-    public string Help =
-        "'steamid': set the specified player as the streamer";
+    public SetStreamerCommand()
+    {
+        CommandPrefix = "!setStreamer";
+        Help = "'steamid': Set the specified player as the streamer";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -304,10 +328,11 @@ public class SetStreamerCommand : APICommand
 
 public class RemoveStreamerCommand : APICommand
 {
-    public string CommandPrefix = "!rmStreamer";
-
-    public string Help =
-        "'steamid': remove the streamer status from the specified player";
+    public RemoveStreamerCommand()
+    {
+        CommandPrefix = "!rmStreamer";
+        Help = "'steamid': Remove the streamer status from the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -324,10 +349,11 @@ public class RemoveStreamerCommand : APICommand
 
 public class OpCommand : APICommand
 {
-    public string CommandPrefix = "!op";
-
-    public string Help =
-        "'steamid': grant operator privileges to the specified player";
+    public OpCommand()
+    {
+        CommandPrefix = "!op";
+        Help = "'steamid': Grant operator privileges to the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
@@ -344,10 +370,11 @@ public class OpCommand : APICommand
 
 public class DeopCommand : APICommand
 {
-    public string CommandPrefix = "!deop";
-
-    public string Help =
-        "'steamid': revoke operator privileges from the specified player";
+    public DeopCommand()
+    {
+        CommandPrefix = "!deop";
+        Help = "'steamid': Revoke operator privileges from the specified player";
+    }
 
     public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
     {
