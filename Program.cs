@@ -65,7 +65,10 @@ public class MyPlayer : Player<MyPlayer>
 
 internal class MyGameServer : GameServer<MyPlayer>
 {
-    private readonly List<APICommand> ChatCommands = new()
+    private readonly string mAdminJson = "./config/admins.json";
+    private readonly List<ulong> mAdmins = new();
+
+    private readonly List<APICommand> mChatCommands = new()
     {
         new HealCommand(),
         new KillCommand(),
@@ -83,10 +86,6 @@ internal class MyGameServer : GameServer<MyPlayer>
         new OpCommand(),
         new DeopCommand()
     };
-
-
-    private readonly string mAdminJson = "./config/admins.json";
-    private readonly List<ulong> mAdmins = new();
 
 
     //CommandAPI
@@ -127,20 +126,31 @@ internal class MyGameServer : GameServer<MyPlayer>
         return true;
     }
 
+    public override Task OnRoundEnded()
+    {
+        foreach (var player in AllPlayers) player.Level = 0;
+        return base.OnRoundEnded();
+    }
+
+    // CommandAPI
+
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
-        if (!player.IsAdmin) return true;
-        var splits = msg.Split(" ");
-        foreach (var command in ChatCommands)
-            if (splits[0] == command.CommandPrefix)
-            {
-                var c = command.ChatCommand(player, channel, msg);
-                await HandleCommand(c);
-                return false;
-            }
+        return await Task.Run(() =>
+        {
+            if (!player.IsAdmin) return true;
+            var splits = msg.Split(" ");
+            foreach (var command in mChatCommands)
+                if (splits[0] == command.CommandPrefix)
+                {
+                    var c = command.ChatCommand(player, channel, msg);
+                    HandleCommand(c);
+                    return false;
+                }
 
 
-        return true;
+            return true;
+        });
     }
 
 
@@ -304,7 +314,7 @@ internal class MyGameServer : GameServer<MyPlayer>
                 }
                 case ActionType.Help:
                 {
-                    foreach (var command in ChatCommands) SayToChat($"{command.CommandPrefix} {command.Help}");
+                    foreach (var command in mChatCommands) SayToChat($"{command.CommandPrefix} {command.Help}");
                     break;
                 }
                 case ActionType.ChangeDamage:
