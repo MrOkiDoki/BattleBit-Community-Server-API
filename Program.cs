@@ -52,7 +52,7 @@ public class MyPlayer : Player<MyPlayer>
             ToolName = gunGame[level].Name,
             MainSight = Attachments.RedDot
         };
-        SetPrimaryWeapon(w, 20, true);
+        SetPrimaryWeapon(w, 10, true);
     }
 }
 
@@ -180,6 +180,7 @@ internal class MyGameServer : GameServer<MyPlayer>
         player.updateWeapon();
         player.SetRunningSpeedMultiplier(1.5f);
         player.SetFallDamageMultiplier(0f);
+        player.SetJumpMultiplier(2f);
         return base.OnPlayerSpawned(player);
     }
 
@@ -194,6 +195,7 @@ internal class MyGameServer : GameServer<MyPlayer>
         var killer = onPlayerKillArguments.Killer;
         var victim = onPlayerKillArguments.Victim;
         killer.level++;
+        killer.updateWeapon();
         return true;
     }
 
