@@ -60,9 +60,9 @@ internal class MyGameServer : GameServer<MyPlayer>
     }
 
 
-    public override Task OnPlayerSpawned(MyPlayer player)
+    public override async Task OnPlayerSpawned(MyPlayer player)
     {
-        Task.Run(() =>
+        await Task.Run(() =>
             {
                 player.UpdateWeapon();
                 player.SetRunningSpeedMultiplier(1.25f);
@@ -70,7 +70,6 @@ internal class MyGameServer : GameServer<MyPlayer>
                 player.SetJumpMultiplier(1.5f);
             }
         );
-        return base.OnPlayerSpawned(player);
     }
 
 
@@ -81,10 +80,13 @@ internal class MyGameServer : GameServer<MyPlayer>
 
     public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
     {
-        var killer = onPlayerKillArguments.Killer;
-        var victim = onPlayerKillArguments.Victim;
-        killer.Level++;
-        killer.UpdateWeapon();
+        await Task.Run(() =>
+        {
+            var killer = onPlayerKillArguments.Killer;
+            var victim = onPlayerKillArguments.Victim;
+            killer.Level++;
+            killer.UpdateWeapon();
+        });
         return true;
     }
 }
