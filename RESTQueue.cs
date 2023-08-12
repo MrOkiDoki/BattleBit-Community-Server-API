@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace CommandQueueApp
 {
     //public class Data
@@ -9,7 +11,8 @@ namespace CommandQueueApp
         public ActionType Action { get; set; }
         public ulong StreamerID { get; set; }
         public int Amount { get; set; }
-
+        
+        public Vector3 Location { get; set; }
         public IEnumerable<string> Data { get; set;}
 
         public string ExecutorName{ get; set; }

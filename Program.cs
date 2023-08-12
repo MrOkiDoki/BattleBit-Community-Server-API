@@ -3,7 +3,11 @@ using BattleBitAPI.Common;
 using BattleBitAPI.Server;
 using CommandQueueApp;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.InteropServices.ObjectiveC;
+using System.Text.Json;
 using System.Threading.Channels;
+
 
 //a comment
 class Program
@@ -24,122 +28,99 @@ class Program
 }
 class MyPlayer : Player<MyPlayer>
 {
-
+    public bool isAdmin;
+    public bool isStreamer;
 }
 class MyGameServer : GameServer<MyPlayer>
 {
+    private readonly string mSteamIdJson = "./config/streamer_steamids.json";
+    private readonly string mAdminJson = "./config/admins.json";
+
+    private readonly List<APICommand> ChatCommands = new List<APICommand>()
+    {
+        new HealCommand(),
+        new KillCommand(),
+        
+    };
     //public CommandQueue queue = new();
-    public List<ulong> listed_streamers = new List<ulong>();
-    public List<MyPlayer> ConnectedStreamers = new List<MyPlayer>();
-    public List<string> ChatMessages = new List<string>();
+    private List<ulong> mListedStreamers = new();
+    private List<ulong> mAdmins = new();
 
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
-
+        if (!player.isAdmin)
+        {
+            return true;
+        }
         string[] splits = msg.Split(" ");
         var c = new Command(); // just to test replace with argument parsing for now
-        c.StreamerID = player.SteamID;
+        
         switch (splits[0])
         {
-            case "heal":
-                {
-                    c.Action = ActionType.Heal;
-                    c.Amount = 10;
-                    c.ExecutorName = "Tester";
-                    break;
-                }
-            case "kill":
-                {
-                    c.Action = ActionType.Kill;
-                    c.Amount = 1;
-                    c.ExecutorName = "Tester";
-                    break;
-                }
-            case "grenade":
-                {
-                    c.Action = ActionType.Grenade;
-                    c.Amount = 1;
-                    c.ExecutorName = "Tester";
-                    break;
-                }
-            case "teleport":
-                {
-                    c.Action = ActionType.Teleport;
-                    c.Amount = 10;
-                    c.ExecutorName = "Tester";
-                    break;
-                }
-            case "speed":
-                {
-                    c.Action = ActionType.Speed;
-                    c.Amount = 5;
-                    c.ExecutorName = "Tester";
-                    break;
-                }
-            case "changeAttachement":
-            {
-                c.Action = ActionType.ChangeAttachement;
-                c.Amount = 1;
-                c.Data = splits.Skip(0).Take(splits.Length);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "changeWeapon":
-            {
-                c.Action = ActionType.ChangeWeapon;
-                c.Amount = 1;
-                c.Data = splits.Skip(0).Take(splits.Length);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "reveal":
-            {
-                c.Action = ActionType.Reveal;
-                c.Amount = 10;
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "changeDamage":
-            {
-                c.Action = ActionType.ChangeDamage;
-                c.Amount = Int32.Parse(splits[1]);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "changeRecievedDamage":
-            {
-                c.Action = ActionType.ChangeReceivedDamage;
-                c.Amount = Int32.Parse(splits[1]);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "changeAmmo":
-            {
-                c.Action = ActionType.ChangeAmmo;
-                c.Amount = Int32.Parse(splits[1]);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "setStreamer":
-            {
-                player.Message($"You are now a Streamer");
-                listed_streamers.Add(player.SteamID);
-                ConnectedStreamers.Add(player);
-                return true;
-            }
-            case "start":
-            {
-                player.Message($"Forcing start");
-                ForceStartGame();
-                return true;
-            }
+            
         }
         await HandleCommand(c);
         return true;
     }
+
+    public List<APICommand> mCommands = new(){ new HealCommand(), new KillCommand(), new TeleportCommand(), new GrenadeCommand()};
+
+    public void SaveStreamers()
+    {
+        try
+        {
+            var newJson = JsonSerializer.Serialize(mListedStreamers, new JsonSerializerOptions { WriteIndented = true });
+
+            // Write the JSON to the file, overwriting its content
+            File.WriteAllText(mSteamIdJson, newJson);
+
+            Console.WriteLine("Steam IDs updated and saved to the file.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Steam IDs couldn't be updated and saved to the file." + ex);
+        }
+    }
     public override async Task OnConnected()
     {
         await Console.Out.WriteLineAsync(this.GameIP + " Connected");
+        await Console.Out.WriteLineAsync("Fetching configs");
+        try
+        {
+            // Read the entire JSON file as a string
+            var jsonFilePath = mSteamIdJson;
+            var jsonString = File.ReadAllText(jsonFilePath);
+
+            // Parse the JSON array using System.Text.Json
+            var steamIds = JsonSerializer.Deserialize<ulong[]>(jsonString);
+            foreach (var steamId in steamIds)
+            {
+                mListedStreamers.Add(steamId);
+            }
+            await Console.Out.WriteLineAsync("Fetching streamers succeeded");
+        }
+        catch (Exception ex)
+        {
+            await Console.Out.WriteLineAsync("Fetching streamers failed: " +ex);
+        }
+        try
+        {
+            // Read the entire JSON file as a string
+            var jsonFilePath = mAdminJson;
+            var jsonString = File.ReadAllText(jsonFilePath);
+
+            // Parse the JSON array using System.Text.Json
+            var steamIds = JsonSerializer.Deserialize<ulong[]>(jsonString);
+            foreach (var steamId in steamIds)
+            {
+                mAdmins.Add(steamId);
+            }
+            await Console.Out.WriteLineAsync("Fetching admins succeeded");
+        }
+        catch (Exception ex)
+        {
+            await Console.Out.WriteLineAsync("Fetching admins failed: " +ex);
+        }
     }
     public override async Task OnDisconnected()
     {
@@ -149,15 +130,18 @@ class MyGameServer : GameServer<MyPlayer>
     public override async Task<bool> OnPlayerConnected(MyPlayer player)
     {
         await Console.Out.WriteLineAsync(player.Name + " Connected");
-        if (!listed_streamers.Contains(player.SteamID))
+        if (!mListedStreamers.Contains(player.SteamID))
         {
             return true;
         }
-        if (ConnectedStreamers.Contains(player))
+
+        player.isStreamer = true;
+        if (!mAdmins.Contains(player.SteamID))
         {
             return true;
         }
-        ConnectedStreamers.Add(player);
+
+        player.isAdmin = true;
         return true;
     }
 
@@ -172,8 +156,12 @@ class MyGameServer : GameServer<MyPlayer>
 
     public async Task HandleCommand(Command c)
     {  // need testing if blocking
-        foreach (MyPlayer player in ConnectedStreamers)
+        foreach (MyPlayer player in AllPlayers)
         {
+            if (!player.isStreamer)
+            {
+                continue;
+            }
             if (player.SteamID != c.StreamerID)
             {
                 continue;
@@ -227,4 +215,220 @@ class MyGameServer : GameServer<MyPlayer>
 
         }
     }
+    public class APICommand
+    {
+        public static string CommandPrefix = String.Empty;
+        public static string Help = String.Empty;
+        public static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            return null;
+        }
+    }
+    public class HealCommand : APICommand
+    {
+        public static new string CommandPrefix = "!heal";
+        public static new string Help = $"{CommandPrefix} 'steamid' 'amount': Heals specific player the specified amount";
+        public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            var splits = msg.Split(" ");
+            var c = new Command
+            {
+                StreamerID = Convert.ToUInt64(splits[1]),
+                Action = ActionType.Heal,
+                Amount = Int32.Parse(splits[2]),
+                ExecutorName = "Chat Test"
+            };
+            return c;
+        }
+    }
+    public class KillCommand : APICommand
+    {
+        public static new string CommandPrefix = "!kill";
+        public static new string Help = $"{CommandPrefix} 'steamid': Kills specific player";
+        public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            var splits = msg.Split(" ");
+            var c = new Command
+            {
+                StreamerID = Convert.ToUInt64(splits[1]),
+                Action = ActionType.Kill,
+                Amount = 0,
+                ExecutorName = "Chat Test"
+            };
+            return c;
+        }
+    }
+    public class GrenadeCommand : APICommand
+    {
+        public static new string CommandPrefix = "!grenade";
+        public static new string Help = $"{CommandPrefix} 'steamid': spawns live grenade on specific player";
+        public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            var splits = msg.Split(" ");
+            var c = new Command
+            {
+                StreamerID = Convert.ToUInt64(splits[1]),
+                Action = ActionType.Grenade,
+                Amount = 0,
+                ExecutorName = "Chat Test"
+            };
+            return c;
+        }
+    }
+    public class TeleportCommand : APICommand
+    {
+        public static new string CommandPrefix = "!teleport";
+        public static new string Help = $"{CommandPrefix} 'steamid' 'vector': tps specific player to vector location";
+        public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            var splits = msg.Split(" ");
+            var vectorStr = splits[2].Split(",");
+            Vector3 vector = new Vector3()
+            {
+                X = Convert.ToSingle(vectorStr[0]),
+                Y = Convert.ToSingle(vectorStr[1]),
+                Z = Convert.ToSingle(vectorStr[1])
+            };
+            
+            var c = new Command
+            {
+                StreamerID = Convert.ToUInt64(splits[1]),
+                Action = ActionType.Teleport,
+                Amount = 0,
+                Location = vector,
+                ExecutorName = "Chat Test"
+            };
+            return c;
+        }
+    }
+     
+    
+/*    
+    case "!teleport":
+                {
+                    
+                    break;
+                }
+            case "!speed":
+                {
+                    c.Action = ActionType.Speed;
+                    c.Amount = 5;
+                    c.ExecutorName = "Tester";
+                    break;
+                }
+            case "!changeAttachement":
+            {
+                c.Action = ActionType.ChangeAttachement;
+                c.Amount = 1;
+                c.Data = splits.Skip(0).Take(splits.Length);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "!changeWeapon":
+            {
+                c.Action = ActionType.ChangeWeapon;
+                c.Amount = 1;
+                c.Data = splits.Skip(0).Take(splits.Length);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "!reveal":
+            {
+                c.Action = ActionType.Reveal;
+                c.Amount = 10;
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "!changeDamage":
+            {
+                c.Action = ActionType.ChangeDamage;
+                c.Amount = Int32.Parse(splits[1]);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "!changeRecievedDamage":
+            {
+                c.Action = ActionType.ChangeReceivedDamage;
+                c.Amount = Int32.Parse(splits[1]);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "!changeAmmo":
+            {
+                c.Action = ActionType.ChangeAmmo;
+                c.Amount = Int32.Parse(splits[2]);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "!setStreamer":
+            {
+                var newId = Convert.ToUInt64(splits[1]);
+                player.Message($"{newId} is now a Streamer");
+                mListedStreamers.Add(newId);
+                foreach (var p in AllPlayers)
+                {
+                    if (p.SteamID == newId)
+                    {
+                        p.isStreamer = true;
+                    }
+                }
+                SaveStreamers();
+                return true;
+            }
+            case "!rmStreamer":
+            {
+                var newId = Convert.ToUInt64(splits[1]);
+                player.Message($"{newId} is now a Streamer");
+                mListedStreamers.Remove(newId);
+                foreach (var p in AllPlayers)
+                {
+                    if (p.SteamID == newId)
+                    {
+                        p.isStreamer = false;
+                    }
+                }
+                SaveStreamers();
+                return true;
+            }
+            case "!op":
+            {
+                var newId = Convert.ToUInt64(splits[1]);
+                player.Message($"{newId} is now an Admin");
+                mAdmins.Add(newId);
+                foreach (var p in AllPlayers)
+                {
+                    if (p.SteamID == newId)
+                    {
+                        p.isAdmin = true;
+                        break;
+                    }
+                }
+                return true;
+            }
+            case "!deop":
+            {
+                var newId = Convert.ToUInt64(splits[1]);
+                player.Message($"{newId} is no longer an Admin");
+                mAdmins.Remove(newId);
+                foreach (var p in AllPlayers)
+                {
+                    if (p.SteamID == newId)
+                    {
+                        p.isAdmin = false;
+                        break;
+                    }
+                }
+                return true;
+            }
+            case "!start":
+            {
+                player.Message($"Forcing start");
+                ForceStartGame();
+                return true;
+            }
+            case "!help":
+            {
+                SayToChat("Current commands:");
+            }
+            */
 }
