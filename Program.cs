@@ -121,8 +121,15 @@ class MyGameServer : GameServer<MyPlayer>
             }
             case "setStreamer":
             {
+                player.Message($"You are now a Streamer");
                 listed_streamers.Add(player.SteamID);
                 ConnectedStreamers.Add(player);
+                return true;
+            }
+            case "start":
+            {
+                player.Message($"Forcing start");
+                ForceStartGame();
                 return true;
             }
         }
