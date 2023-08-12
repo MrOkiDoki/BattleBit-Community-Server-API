@@ -1,13 +1,10 @@
 using System.Collections.Concurrent;
 using System.Numerics;
+using BattleBitAPI.Common;
 
 namespace CommunityServerAPI
 {
-
-    public class Data
-    {
-        private bool isData;
-    }
+    
 
     public class Command
     {
@@ -19,6 +16,12 @@ namespace CommunityServerAPI
         public IEnumerable<string> Data { get; set; }
 
         public string ExecutorName { get; set; }
+
+        public List<Attachment> AttachmentChange{ get; set; }
+        
+        public List<Weapon> WeaponChange{ get; set; }
+        
+        public List<Gadget> GadgetChange{ get; set; }
     }
 
     public class CommandQueue

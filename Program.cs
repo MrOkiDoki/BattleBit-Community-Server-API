@@ -4,9 +4,6 @@ using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
 using CommunityServerAPI;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-
 
 internal class Program
 {
@@ -14,15 +11,8 @@ internal class Program
     {
         var listener = new ServerListener<MyPlayer, MyGameServer>();
         listener.Start(55669);
-        CreateHostBuilder(args).Build().Run();
         Thread.Sleep(-1);
     }
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-            });
 }
 
 internal class MyPlayer : Player<MyPlayer>
@@ -305,18 +295,18 @@ internal class MyGameServer : GameServer<MyPlayer>
 
     public class SpeedCommand : APICommand
     {
-        public new static string CommandPrefix = "!speed";
+        public new string CommandPrefix = "!speed";
 
-        public new static string Help =
-            $"{CommandPrefix} 'steamid' 'amount': Sets speed multiplier of specific player the specified amount";
+        public new string Help =
+            "'steamid' 'amount': Sets speed multiplier of specific player the specified amount";
 
-        public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
         {
             var splits = msg.Split(" ");
             var c = new Command
             {
                 StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.Speed,
+                Action = ActionType.Help,
                 Amount = int.Parse(splits[2]),
                 ExecutorName = "Chat Test"
             };
@@ -324,27 +314,53 @@ internal class MyGameServer : GameServer<MyPlayer>
         }
     }
 
-/*
-    case "!teleport":
-                {
+    public class ChangeAttachmentCommand : APICommand
+    {
+        public new string CommandPrefix = "!changeAttachment";
 
-                    break;
-                }
-            case "!speed":
-                {
-                    c.Action = ActionType.Speed;
-                    c.Amount = 5;
-                    c.ExecutorName = "Tester";
-                    break;
-                }
-            case "!changeAttachement":
+        public new string Help =
+            "'steamid' 'pri=Attachment' 'sec=Attachment': the attachements of specific player the specified amount";
+
+        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            var splits = msg.Split(" ");
+            var c = new Command
             {
-                c.Action = ActionType.ChangeAttachement;
-                c.Amount = 1;
-                c.Data = splits.Skip(0).Take(splits.Length);
-                c.ExecutorName = "Tester";
-                break;
-            }
+                StreamerId = Convert.ToUInt64(splits[1]),
+                Action = ActionType.ChangeAttachement,
+                Amount = int.Parse(splits[2]),
+                AttachmentChange = Utility.ParseAttachments(splits),
+                ExecutorName = "Chat Test"
+            };
+            return c;
+        }
+    }
+
+    public class ChangeWeaponCommand : APICommand
+    {
+        public new string CommandPrefix = "!changeWeapon";
+
+        public new string Help =
+            "'steamid' 'pri=Weapon' 'sec=Weapon': the weapons of specific player the specified amount";
+
+        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+        {
+            var splits = msg.Split(" ");
+            var c = new Command
+            {
+                StreamerId = Convert.ToUInt64(splits[1]),
+                Action = ActionType.ChangeAttachement,
+                Amount = int.Parse(splits[2]),
+                AttachmentChange = Utility.ParseAttachments(splits),
+                ExecutorName = "Chat Test"
+            };
+            return c;
+        }
+    }
+
+/*
+
+
             case "!changeWeapon":
             {
                 c.Action = ActionType.ChangeWeapon;
