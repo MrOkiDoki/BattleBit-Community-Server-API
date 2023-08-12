@@ -121,7 +121,7 @@ internal class MyGameServer : GameServer<MyPlayer>
                 ForceEndGame();
             }
 
-            if (onPlayerKillArguments.KillerTool == "Sledge Hammer") victim.Level--;
+            if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
             killer.UpdateWeapon();
         });
         return true;
@@ -231,6 +231,7 @@ internal class MyGameServer : GameServer<MyPlayer>
 
         player.IsStreamer = true;
         if (!mAdmins.Contains(player.SteamID)) return true;
+        ;
 
         player.IsAdmin = true;
         return true;
