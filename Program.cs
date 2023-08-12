@@ -47,17 +47,20 @@ public class MyPlayer : Player<MyPlayer>
 
     public void UpdateWeapon()
     {
-        SetHeavyGadget("Sledge Hammer", 0);
-        if (Level > gunGame.Count) return;
-        var w = new WeaponItem
+        if (Level < gunGame.Count)
         {
-            ToolName = gunGame[Level].Name,
-            MainSight = Attachments.RedDot
-        };
-        SetPrimaryWeapon(w, 10, true);
+            var w = new WeaponItem
+            {
+                ToolName = gunGame[Level].Name,
+                MainSight = Attachments.RedDot
+            };
+            SetPrimaryWeapon(w, 10, true);
+        }
+
+        SetHeavyGadget("Sledge Hammer", 0);
     }
 
-    public int getGameLenght()
+    public int GetGameLenght()
     {
         return gunGame.Count;
     }
@@ -113,8 +116,8 @@ internal class MyGameServer : GameServer<MyPlayer>
             var killer = onPlayerKillArguments.Killer;
             var victim = onPlayerKillArguments.Victim;
             killer.Level++;
-            if (killer.Level == killer.getGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-            if (killer.Level > killer.getGameLenght())
+            if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
+            if (killer.Level > killer.GetGameLenght())
             {
                 AnnounceShort($"{killer.Name} won the Game");
                 ForceEndGame();
