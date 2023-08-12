@@ -282,7 +282,7 @@
                 case AttachmentType.Barrel:
                     return this.Barrel == attachment;
                 case AttachmentType.UnderRail:
-                    return this.Barrel == attachment;
+                    return this.UnderRail == attachment;
                 case AttachmentType.SideRail:
                     return this.SideRail == attachment;
                 case AttachmentType.Bolt:
