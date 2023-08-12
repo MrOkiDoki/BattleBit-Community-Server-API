@@ -8,6 +8,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
+        Console.WriteLine("Starting API");
         var listener = new ServerListener<MyPlayer, MyGameServer>();
         listener.Start(55669);
         Thread.Sleep(-1);
