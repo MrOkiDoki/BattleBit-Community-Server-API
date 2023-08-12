@@ -11,5 +11,10 @@ public enum ActionType
     ChangeDamage,
     ChangeReceivedDamage,
     ChangeAmmo,
-    Help
+    Help,
+    Start,
+    SetStreamer,
+    RemoveStreamer,
+    GrantOP,
+    RevokeOP
 }

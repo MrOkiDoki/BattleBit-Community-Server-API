@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Text.Json;
+﻿using System.Text.Json;
 using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
@@ -15,7 +14,7 @@ internal class Program
     }
 }
 
-internal class MyPlayer : Player<MyPlayer>
+public class MyPlayer : Player<MyPlayer>
 {
     public bool isAdmin;
     public bool isStreamer;
@@ -28,7 +27,18 @@ internal class MyGameServer : GameServer<MyPlayer>
         new HealCommand(),
         new KillCommand(),
         new TeleportCommand(),
-        new GrenadeCommand()
+        new GrenadeCommand(),
+        new ForceStartCommand(),
+        new SpeedCommand(),
+        new HelpCommand(),
+        new RevealCommand(),
+        new ChangeDamageCommand(),
+        new ChangeReceivedDamageCommand(),
+        new ChangeAmmoCommand(),
+        new SetStreamerCommand(),
+        new RemoveStreamerCommand(),
+        new OpCommand(),
+        new DeopCommand()
     };
 
     private readonly string mAdminJson = "./config/admins.json";
@@ -69,6 +79,24 @@ internal class MyGameServer : GameServer<MyPlayer>
         catch (Exception ex)
         {
             Console.WriteLine("Steam IDs couldn't be updated and saved to the file." + ex);
+        }
+    }
+
+    public void SaveAdmins()
+    {
+        try
+        {
+            var newJson =
+                JsonSerializer.Serialize(mAdmins, new JsonSerializerOptions { WriteIndented = true });
+
+            // Write the JSON to the file, overwriting its content
+            File.WriteAllText(mAdminJson, newJson);
+
+            Console.WriteLine("Admins updated and saved to the file.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Admins couldn't be updated and saved to the file." + ex);
         }
     }
 
@@ -182,8 +210,13 @@ internal class MyGameServer : GameServer<MyPlayer>
                 }
                 case ActionType.ChangeAmmo:
                 {
-                    //set marker on Map
                     player.Message($"{c.ExecutorName} has set your Ammo to {c.Amount}");
+                    break;
+                }
+                case ActionType.Start:
+                {
+                    player.Message("Forcing start");
+                    ForceStartGame();
                     break;
                 }
                 case ActionType.Help:
@@ -191,281 +224,44 @@ internal class MyGameServer : GameServer<MyPlayer>
                     foreach (var command in ChatCommands) SayToChat($"{command.CommandPrefix} {command.Help}");
                     break;
                 }
-            }
-        }
-    }
-
-    public class APICommand
-    {
-        public string CommandPrefix = string.Empty;
-        public string Help = string.Empty;
-
-        public Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            return null;
-        }
-    }
-
-    public class HealCommand : APICommand
-    {
-        public new string CommandPrefix = "!heal";
-
-        public new string Help =
-            "'steamid' 'amount': Heals specific player the specified amount";
-
-        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.Heal,
-                Amount = int.Parse(splits[2]),
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-    public class KillCommand : APICommand
-    {
-        public new string CommandPrefix = "!kill";
-        public new string Help = "'steamid': Kills specific player";
-
-        public new static Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.Kill,
-                Amount = 0,
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-    public class GrenadeCommand : APICommand
-    {
-        public new string CommandPrefix = "!grenade";
-        public new string Help = "'steamid': spawns live grenade on specific player";
-
-        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.Grenade,
-                Amount = 0,
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-    public class TeleportCommand : APICommand
-    {
-        public new string CommandPrefix = "!teleport";
-        public new string Help = "'steamid' 'vector': tps specific player to vector location";
-
-        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var vectorStr = splits[2].Split(",");
-            var vector = new Vector3
-            {
-                X = Convert.ToSingle(vectorStr[0]),
-                Y = Convert.ToSingle(vectorStr[1]),
-                Z = Convert.ToSingle(vectorStr[1])
-            };
-
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.Teleport,
-                Amount = 0,
-                Location = vector,
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-    public class SpeedCommand : APICommand
-    {
-        public new string CommandPrefix = "!speed";
-
-        public new string Help =
-            "'steamid' 'amount': Sets speed multiplier of specific player the specified amount";
-
-        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.Help,
-                Amount = int.Parse(splits[2]),
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-    public class ChangeAttachmentCommand : APICommand
-    {
-        public new string CommandPrefix = "!changeAttachment";
-
-        public new string Help =
-            "'steamid' 'pri=Attachment' 'sec=Attachment': the attachements of specific player the specified amount";
-
-        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.ChangeAttachement,
-                Amount = int.Parse(splits[2]),
-                AttachmentChange = Utility.ParseAttachments(splits),
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-    public class ChangeWeaponCommand : APICommand
-    {
-        public new string CommandPrefix = "!changeWeapon";
-
-        public new string Help =
-            "'steamid' 'pri=Weapon' 'sec=Weapon': the weapons of specific player the specified amount";
-
-        public new Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
-        {
-            var splits = msg.Split(" ");
-            var c = new Command
-            {
-                StreamerId = Convert.ToUInt64(splits[1]),
-                Action = ActionType.ChangeAttachement,
-                Amount = int.Parse(splits[2]),
-                AttachmentChange = Utility.ParseAttachments(splits),
-                ExecutorName = "Chat Test"
-            };
-            return c;
-        }
-    }
-
-/*
-
-
-            case "!changeWeapon":
-            {
-                c.Action = ActionType.ChangeWeapon;
-                c.Amount = 1;
-                c.Data = splits.Skip(0).Take(splits.Length);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "!reveal":
-            {
-                c.Action = ActionType.Reveal;
-                c.Amount = 10;
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "!changeDamage":
-            {
-                c.Action = ActionType.ChangeDamage;
-                c.Amount = Int32.Parse(splits[1]);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "!changeRecievedDamage":
-            {
-                c.Action = ActionType.ChangeReceivedDamage;
-                c.Amount = Int32.Parse(splits[1]);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "!changeAmmo":
-            {
-                c.Action = ActionType.ChangeAmmo;
-                c.Amount = Int32.Parse(splits[2]);
-                c.ExecutorName = "Tester";
-                break;
-            }
-            case "!setStreamer":
-            {
-                var newId = Convert.ToUInt64(splits[1]);
-                player.Message($"{newId} is now a Streamer");
-                mListedStreamers.Add(newId);
-                foreach (var p in AllPlayers)
+                case ActionType.ChangeDamage:
                 {
-                    if (p.SteamID == newId)
-                    {
-                        p.isStreamer = true;
-                    }
+                    player.SetGiveDamageMultiplier(c.Amount);
+                    player.Message($"{c.ExecutorName} has set your Dmg Multiplier to {c.Amount}");
+                    break;
                 }
-                SaveStreamers();
-                return true;
-            }
-            case "!rmStreamer":
-            {
-                var newId = Convert.ToUInt64(splits[1]);
-                player.Message($"{newId} is now a Streamer");
-                mListedStreamers.Remove(newId);
-                foreach (var p in AllPlayers)
+                case ActionType.ChangeReceivedDamage:
                 {
-                    if (p.SteamID == newId)
-                    {
-                        p.isStreamer = false;
-                    }
+                    player.SetReceiveDamageMultiplier(c.Amount);
+                    player.Message($"{c.ExecutorName} has set your recieve Dmg Multiplier to {c.Amount}");
+                    break;
                 }
-                SaveStreamers();
-                return true;
-            }
-            case "!op":
-            {
-                var newId = Convert.ToUInt64(splits[1]);
-                player.Message($"{newId} is now an Admin");
-                mAdmins.Add(newId);
-                foreach (var p in AllPlayers)
+                case ActionType.SetStreamer:
                 {
-                    if (p.SteamID == newId)
-                    {
-                        p.isAdmin = true;
-                        break;
-                    }
+                    player.isStreamer = true;
+                    SaveStreamers();
+                    break;
                 }
-                return true;
-            }
-            case "!deop":
-            {
-                var newId = Convert.ToUInt64(splits[1]);
-                player.Message($"{newId} is no longer an Admin");
-                mAdmins.Remove(newId);
-                foreach (var p in AllPlayers)
+                case ActionType.RemoveStreamer:
                 {
-                    if (p.SteamID == newId)
-                    {
-                        p.isAdmin = false;
-                        break;
-                    }
+                    player.isStreamer = false;
+                    SaveStreamers();
+                    break;
                 }
-                return true;
+                case ActionType.GrantOP:
+                {
+                    player.isAdmin = true;
+                    SaveAdmins();
+                    break;
+                }
+                case ActionType.RevokeOP:
+                {
+                    player.isAdmin = false;
+                    SaveAdmins();
+                    break;
+                }
+                // Add more cases for other ActionType values as needed
             }
-            case "!start":
-            {
-                player.Message($"Forcing start");
-                ForceStartGame();
-                return true;
-            }
-            case "!help":
-            {
-                SayToChat("Current commands:");
-            }
-            */
+        }
+    }
 }
