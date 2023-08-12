@@ -1,15 +1,14 @@
-﻿version: "3.8"
+version: "3.8"
 
 # In the docker compose file, we define some services (containers) to run.
 # This will be geared towards production.
 services:
 
   battlebit-community-api:
-    image: bb-cummunity-server-api:latest
+    image: bb-community-server-api:latest
     build:
       # Specify how to build the image above.
       context: .
-      target: build
 
     restart: always
     ports:
