@@ -14,13 +14,13 @@ namespace CommandQueueApp
     }
     public class Command
     {
-        public string Action { get; set; }
+        public ActionType Action { get; set; }
         public ulong StreamerID { get; set; }
         public int Amount { get; set; }
 
         public string Data { get; set;}
 
-        public string ExecuterName{ get; set; }
+        public string ExecutorName{ get; set; }
 
         public Data DataHandler( string data, string Action)
         {
