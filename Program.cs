@@ -49,7 +49,7 @@ public class MyPlayer : Player<MyPlayer>
         var w = new WeaponItem
         {
             ToolName = gunGame[level].Name,
-            MainSight = Attachments.Reflex
+            MainSight = Attachments.RedDot
         };
         SetPrimaryWeapon(w, 20, true);
     }
@@ -193,7 +193,6 @@ internal class MyGameServer : GameServer<MyPlayer>
         var killer = onPlayerKillArguments.Killer;
         var victim = onPlayerKillArguments.Victim;
         killer.level++;
-        victim.level--;
         return true;
     }
 
