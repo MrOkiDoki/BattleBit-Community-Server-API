@@ -30,7 +30,7 @@ class MyGameServer : GameServer<MyPlayer>
 {
     //public CommandQueue queue = new();
     public List<ulong> listed_streamers = new List<ulong>();
-    public List<MyPlayer> connectedStreamers = new List<MyPlayer>();
+    public List<MyPlayer> ConnectedStreamers = new List<MyPlayer>();
     public List<string> ChatMessages = new List<string>();
 
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
@@ -119,6 +119,12 @@ class MyGameServer : GameServer<MyPlayer>
                 c.ExecutorName = "Tester";
                 break;
             }
+            case "setStreamer":
+            {
+                listed_streamers.Add(player.SteamID);
+                ConnectedStreamers.Add(player);
+                return true;
+            }
         }
         await HandleCommand(c);
         return true;
@@ -134,15 +140,16 @@ class MyGameServer : GameServer<MyPlayer>
 
     public override async Task<bool> OnPlayerConnected(MyPlayer player)
     {
+        await Console.Out.WriteLineAsync(player.Name + " Connected");
         if (!listed_streamers.Contains(player.SteamID))
         {
             return true;
         }
-        if (connectedStreamers.Contains(player))
+        if (ConnectedStreamers.Contains(player))
         {
             return true;
         }
-        connectedStreamers.Add(player);
+        ConnectedStreamers.Add(player);
         return true;
     }
 
@@ -157,7 +164,7 @@ class MyGameServer : GameServer<MyPlayer>
 
     public async Task HandleCommand(Command c)
     {  // need testing if blocking
-        foreach (MyPlayer player in connectedStreamers)
+        foreach (MyPlayer player in ConnectedStreamers)
         {
             if (player.SteamID != c.StreamerID)
             {
