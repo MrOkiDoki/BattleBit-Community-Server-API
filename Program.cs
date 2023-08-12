@@ -1,113 +1,214 @@
 ﻿using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
+using CommandQueueApp;
+using System.Linq;
 using System.Threading.Channels;
-using System.Xml;
 
 class Program
 {
     static void Main(string[] args)
     {
         var listener = new ServerListener<MyPlayer, MyGameServer>();
-        listener.Start(29294);
-
+        listener.Start(55669);
         Thread.Sleep(-1);
     }
+
+
+
+
+    
+
+
 }
 class MyPlayer : Player<MyPlayer>
 {
-    public bool IsZombie;
+
 }
 class MyGameServer : GameServer<MyPlayer>
 {
+    //public CommandQueue queue = new();
+    public List<ulong> listed_streamers = new List<ulong>();
+    public List<MyPlayer> connectedStreamers = new List<MyPlayer>();
+    public List<string> ChatMessages = new List<string>();
 
-    public override async Task OnRoundStarted()
+    public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
-    }
-    public override async Task OnRoundEnded()
-    {
-    }
 
-    public override async Task OnPlayerConnected(MyPlayer player)
-    {
-        bool anyZombiePlayer = false;
-        foreach (var item in AllPlayers)
+        string[] splits = msg.Split(" ");
+        var c = new Command(); // just to test replace with argument parsing for now
+        switch (splits[0])
         {
-            if (item.IsZombie)
+            case "heal":
+                {
+                    c.Action = ActionType.Heal;
+                    c.Amount = 10;
+                    c.ExecutorName = "Tester";
+                    break;
+                }
+            case "kill":
+                {
+                    c.Action = ActionType.Kill;
+                    c.Amount = 1;
+                    c.ExecutorName = "Tester";
+                    break;
+                }
+            case "grenade":
+                {
+                    c.Action = ActionType.Grenade;
+                    c.Amount = 1;
+                    c.ExecutorName = "Tester";
+                    break;
+                }
+            case "teleport":
+                {
+                    c.Action = ActionType.Teleport;
+                    c.Amount = 10;
+                    c.ExecutorName = "Tester";
+                    break;
+                }
+            case "speed":
+                {
+                    c.Action = ActionType.Speed;
+                    c.Amount = 5;
+                    c.ExecutorName = "Tester";
+                    break;
+                }
+            case "changeAttachement":
             {
-                anyZombiePlayer = true;
+                c.Action = ActionType.ChangeAttachement;
+                c.Amount = 1;
+                c.Data = splits.Skip(0).Take(splits.Length);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "changeWeapon":
+            {
+                c.Action = ActionType.ChangeWeapon;
+                c.Amount = 1;
+                c.Data = splits.Skip(0).Take(splits.Length);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "reveal":
+            {
+                c.Action = ActionType.Reveal;
+                c.Amount = 10;
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "changeDamage":
+            {
+                c.Action = ActionType.ChangeDamage;
+                c.Amount = Int32.Parse(splits[1]);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "changeRecievedDamage":
+            {
+                c.Action = ActionType.ChangeReceivedDamage;
+                c.Amount = Int32.Parse(splits[1]);
+                c.ExecutorName = "Tester";
+                break;
+            }
+            case "changeAmmo":
+            {
+                c.Action = ActionType.ChangeAmmo;
+                c.Amount = Int32.Parse(splits[1]);
+                c.ExecutorName = "Tester";
                 break;
             }
         }
-
-        if (!anyZombiePlayer)
-        {
-            player.IsZombie = true;
-            player.Message("You are the zombie.");
-            player.Kill();
-        }
+        await HandleCommand(c);
+        return true;
     }
-
-    public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> args)
-    {
-        if (args.Victim.IsZombie)
-        {
-            args.Victim.IsZombie = false;
-            args.Victim.Message("You are no longer zombie");
-
-            AnnounceShort("Choosing new zombie in 5");
-            await Task.Delay(1000);
-            AnnounceShort("Choosing new zombie in 4");
-            await Task.Delay(1000);
-            AnnounceShort("Choosing new zombie in 3");
-            await Task.Delay(1000);
-            AnnounceShort("Choosing new zombie in 2");
-            await Task.Delay(1000);
-            AnnounceShort("Choosing new zombie in 1");
-            await Task.Delay(1000);
-
-            args.Killer.IsZombie = true;
-            args.Killer.SetHeavyGadget(Gadgets.SledgeHammer.ToString(), 0, true);
-
-            var position = args.Killer.GetPosition();
-        }
-    }
-
-
-    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
-    {
-        if (player.IsZombie)
-        {
-            request.Loadout.PrimaryWeapon = default;
-            request.Loadout.SecondaryWeapon = default;
-            request.Loadout.LightGadget = null;
-            request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
-            request.Loadout.Throwable = null;
-        }
-
-        return request;
-    }
-    public override async Task OnPlayerSpawned(MyPlayer player)
-    {
-        if(player.IsZombie)
-        {
-            player.SetRunningSpeedMultiplier(2f);
-            player.SetJumpMultiplier(2f);
-            player.SetFallDamageMultiplier(0f);
-            player.SetReceiveDamageMultiplier(0.1f);
-            player.SetGiveDamageMultiplier(4f);
-        }
-    }
-
-
-
     public override async Task OnConnected()
     {
-        await Console.Out.WriteLineAsync("Current state: " + RoundSettings.State);
-
+        await Console.Out.WriteLineAsync(this.GameIP + " Connected");
     }
-    public override async Task OnGameStateChanged(GameState oldState, GameState newState)
+    public override async Task OnDisconnected()
     {
-        await Console.Out.WriteLineAsync("State changed to -> " + newState);
+        await Console.Out.WriteLineAsync(this.GameIP + " Disconnected");
+    }
+
+    public override async Task<bool> OnPlayerConnected(MyPlayer player)
+    {
+        if (!listed_streamers.Contains(player.SteamID))
+        {
+            return true;
+        }
+        if (connectedStreamers.Contains(player))
+        {
+            return true;
+        }
+        connectedStreamers.Add(player);
+        return true;
+    }
+
+    //public override async Task OnTick()
+    //{
+    //    while (!queue.IsEmpty())
+    //    {
+    //        Command c = queue.Dequeue();
+    //        HandleCommand(c);
+    //    }
+    //}
+
+    public async Task HandleCommand(Command c)
+    {  // need testing if blocking
+        foreach (MyPlayer player in connectedStreamers)
+        {
+            if (player.SteamID != c.StreamerID)
+            {
+                continue;
+            }
+            switch (c.Action)
+            {
+                case ActionType.Heal:
+                    {
+                        player.Heal(c.Amount);
+                        player.Message($"{c.ExecutorName} has healed you for {c.Amount}");
+                        break;
+                    }
+                case ActionType.Kill:
+                    {
+                        player.Kill();
+                        player.Message($"{c.ExecutorName} has killed you");
+                        break;
+                    }
+                case ActionType.Grenade:
+                    {
+                        //can't get player pos right now   
+                        player.Message($"{c.ExecutorName} has spawned a grenade on you");
+                        break;
+                    }
+                case ActionType.Teleport:
+                    {
+                        //relative teleport????
+                        player.Message($"{c.ExecutorName} has teleported you {c.Data}");
+                        break;
+                    }
+                case ActionType.Speed:
+                    {
+                        player.SetRunningSpeedMultiplier(c.Amount);
+                        player.Message($"{c.ExecutorName} has set your speed to {c.Amount}x");
+                        break;
+                    }
+                case ActionType.Reveal:
+                {
+                    //set marker on Map
+                    player.Message($"{c.ExecutorName} has revealed your Position");
+                        break;
+                }
+                case ActionType.ChangeAmmo:
+                {
+                    //set marker on Map
+                    player.Message($"{c.ExecutorName} has set your Ammo to {c.Amount}");
+                        break;
+                }
+
+            }
+
+        }
     }
 }
