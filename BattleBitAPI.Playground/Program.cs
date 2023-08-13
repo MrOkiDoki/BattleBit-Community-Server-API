@@ -69,7 +69,6 @@ class MyGameServer : GameServer<MyPlayer>
             args.Killer.IsZombie = true;
             args.Killer.SetHeavyGadget(Gadgets.SledgeHammer.ToString(), 0, true);
 
-            var position = args.Killer.GetPosition();
         }
     }
 

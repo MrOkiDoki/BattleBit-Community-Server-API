@@ -12,21 +12,21 @@ namespace BattleBitAPI.Server
 {
     public class ServerListener<TPlayer, TGameServer> : IDisposable where TPlayer : Player<TPlayer> where TGameServer : GameServer<TPlayer>
     {
-        // --- Public --- 
+        // --- Public ---
         public bool IsListening { get; private set; }
         public bool IsDisposed { get; private set; }
         public int ListeningPort { get; private set; }
 
-        // --- Events --- 
+        // --- Events ---
         /// <summary>
         /// Fired when an attempt made to connect to the server.<br/>
         /// Default, any connection attempt will be accepted
         /// </summary>
-        /// 
+        ///
         /// <remarks>
         /// IPAddress: IP of incoming connection <br/>
         /// </remarks>
-        /// 
+        ///
         /// <value>
         /// Returns: true if allow connection, false if deny the connection.
         /// </value>
@@ -35,7 +35,7 @@ namespace BattleBitAPI.Server
         /// <summary>
         /// Fired when a game server connects.
         /// </summary>
-        /// 
+        ///
         /// <remarks>
         /// GameServer: Game server that is connecting.<br/>
         /// </remarks>
@@ -44,7 +44,7 @@ namespace BattleBitAPI.Server
         /// <summary>
         /// Fired when a game server reconnects. (When game server connects while a socket is already open)
         /// </summary>
-        /// 
+        ///
         /// <remarks>
         /// GameServer: Game server that is reconnecting.<br/>
         /// </remarks>
@@ -53,22 +53,22 @@ namespace BattleBitAPI.Server
         /// <summary>
         /// Fired when a game server disconnects. Check (GameServer.TerminationReason) to see the reason.
         /// </summary>
-        /// 
+        ///
         /// <remarks>
         /// GameServer: Game server that disconnected.<br/>
         /// </remarks>
         public Func<GameServer<TPlayer>, Task> OnGameServerDisconnected { get; set; }
 
-        // --- Private --- 
+        // --- Private ---
         private TcpListener mSocket;
         private Dictionary<ulong, (TGameServer server, GameServer<TPlayer>.Internal resources)> mActiveConnections;
         private mInstances<TPlayer, TGameServer> mInstanceDatabase;
 
-        // --- Construction --- 
-        public ServerListener()
+        // --- Construction ---
+        public ServerListener(GameserverConstructor<TGameServer, TPlayer> constructor = null)
         {
             this.mActiveConnections = new Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)>(16);
-            this.mInstanceDatabase = new mInstances<TPlayer, TGameServer>();
+            this.mInstanceDatabase = new mInstances<TPlayer, TGameServer>(constructor ?? new GameserverConstructor<TGameServer, TPlayer>());
         }
 
         // --- Starting ---
@@ -1040,7 +1040,7 @@ namespace BattleBitAPI.Server
             return false;
         }
 
-        // --- Disposing --- 
+        // --- Disposing ---
         public void Dispose()
         {
             //Already disposed?
@@ -1052,14 +1052,16 @@ namespace BattleBitAPI.Server
                 Stop();
         }
 
-        // --- Classes --- 
+        // --- Classes ---
         private class mInstances<TPlayer, TGameServer> where TPlayer : Player<TPlayer> where TGameServer : GameServer<TPlayer>
         {
             private Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)> mGameServerInstances;
             private Dictionary<ulong, TPlayer> mPlayerInstances;
+            private GameserverConstructor<TGameServer, TPlayer> _constructor;
 
-            public mInstances()
+            public mInstances(GameserverConstructor<TGameServer, TPlayer> constructor)
             {
+                _constructor = constructor;
                 this.mGameServerInstances = new Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)>(64);
                 this.mPlayerInstances = new Dictionary<ulong, TPlayer>(1024 * 16);
             }
@@ -1075,7 +1077,7 @@ namespace BattleBitAPI.Server
                     }
 
                     @internal = new GameServer<TPlayer>.Internal();
-                    TGameServer gameServer = GameServer<TPlayer>.CreateInstance<TGameServer>(@internal);
+                    TGameServer gameServer = GameServer<TPlayer>.CreateInstance<TGameServer>(@internal, _constructor);
 
                     mGameServerInstances.Add(hash, (gameServer, @internal));
                     return gameServer;

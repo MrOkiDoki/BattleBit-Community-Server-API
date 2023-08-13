@@ -12,7 +12,7 @@ namespace BattleBitAPI.Server
 {
     public class GameServer<TPlayer> : System.IDisposable where TPlayer : Player<TPlayer>
     {
-        // ---- Public Variables ---- 
+        // ---- Public Variables ----
         public ulong ServerHash => mInternal.ServerHash;
         public bool IsConnected => mInternal.IsConnected;
         public IPAddress GameIP => mInternal.GameIP;
@@ -37,7 +37,7 @@ namespace BattleBitAPI.Server
         public string TerminationReason => mInternal.TerminationReason;
         public bool ReconnectFlag => mInternal.ReconnectFlag;
 
-        // ---- Private Variables ---- 
+        // ---- Private Variables ----
         private Internal mInternal;
 
         // ---- Tick ----
@@ -235,7 +235,7 @@ namespace BattleBitAPI.Server
             return false;
         }
 
-        // ---- Virtual ---- 
+        // ---- Virtual ----
         public virtual async Task OnConnected()
         {
 
@@ -704,9 +704,9 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Static ----
-        public static TGameServer CreateInstance<TGameServer>(Internal @internal) where TGameServer : GameServer<TPlayer>
+        public static TGameServer CreateInstance<TGameServer>(Internal @internal, GameserverConstructor<TGameServer, TPlayer> constructor) where TGameServer : GameServer<TPlayer>
         {
-            TGameServer gameServer = (TGameServer)Activator.CreateInstance(typeof(TGameServer));
+            var gameServer = constructor.Create();
             gameServer.mInternal = @internal;
             return gameServer;
         }
@@ -714,7 +714,7 @@ namespace BattleBitAPI.Server
         // ---- Internal ----
         public class Internal
         {
-            // ---- Variables ---- 
+            // ---- Variables ----
             public ulong ServerHash;
             public bool IsConnected;
             public IPAddress GameIP;
@@ -739,7 +739,7 @@ namespace BattleBitAPI.Server
             public string TerminationReason;
             public bool ReconnectFlag;
 
-            // ---- Private Variables ---- 
+            // ---- Private Variables ----
             public byte[] mKeepAliveBuffer;
             public Common.Serialization.Stream mWriteStream;
             public Common.Serialization.Stream mReadStream;
@@ -780,26 +780,26 @@ namespace BattleBitAPI.Server
                 this.RoundSettings = new RoundSettings<TPlayer>(this);
             }
 
-            // ---- Players In Room ---- 
+            // ---- Players In Room ----
             public Dictionary<ulong, Player<TPlayer>> Players = new Dictionary<ulong, Player<TPlayer>>(254);
 
-            // ---- Room Settings ---- 
+            // ---- Room Settings ----
             public mRoomSettings _RoomSettings = new mRoomSettings();
             public bool IsDirtyRoomSettings;
 
-            // ---- Round Settings ---- 
+            // ---- Round Settings ----
             public mRoundSettings _RoundSettings = new mRoundSettings();
             public bool IsDirtyRoundSettings;
 
-            // ---- Map Rotation ---- 
+            // ---- Map Rotation ----
             public HashSet<string> _MapRotation = new HashSet<string>(8);
             public bool IsDirtyMapRotation = false;
 
-            // ---- Gamemode Rotation ---- 
+            // ---- Gamemode Rotation ----
             public HashSet<string> _GamemodeRotation = new HashSet<string>(8);
             public bool IsDirtyGamemodeRotation = false;
 
-            // ---- Public Functions ---- 
+            // ---- Public Functions ----
             public void Set(Func<GameServer<TPlayer>, Internal, Common.Serialization.Stream, Task> func, TcpClient socket, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
             {
                 this.ServerHash = ((ulong)port << 32) | (ulong)iP.ToUInt();
