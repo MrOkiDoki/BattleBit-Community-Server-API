@@ -66,16 +66,16 @@ public class MyPlayer : Player<MyPlayer>
 internal class MyGameServer : GameServer<MyPlayer>
 {
 //    // Gun Game
-//    public override async Task OnPlayerSpawned(MyPlayer player)
-//    {
-//        await Task.Run(() =>
-//        {
-//            player.UpdateWeapon();
-//            player.SetRunningSpeedMultiplier(1.25f);
-//            player.SetFallDamageMultiplier(0f);
-//            player.SetJumpMultiplier(1.5f);
-//        });
-//    }
+    public override async Task OnPlayerSpawned(MyPlayer player)
+    {
+        await Task.Run(() =>
+        {
+            player.UpdateWeapon();
+            player.SetRunningSpeedMultiplier(1.25f);
+            player.SetFallDamageMultiplier(0f);
+            player.SetJumpMultiplier(1.5f);
+        });
+    }
 //
 //    public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
 //    {
