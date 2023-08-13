@@ -55,30 +55,30 @@ class MyGameServer : GameServer<MyPlayer>
     public override async Task OnTick()
     {
         var top5 = players.OrderByDescending(x => x.Kills / x.Deaths).Take(5).ToList();
-    
-        string announcement = $"<align=\"center\">--- Top 5 Players ---\n" +
-                              $"1. {top5[0].Name} - {top5[0].Kills / top5[0].Deaths}\n" +
-                              $"2. {top5[1].Name} - {top5[1].Kills / top5[1].Deaths}\n" +
-                              $"3. {top5[2].Name} - {top5[2].Kills / top5[2].Deaths}\n" +
-                              $"4. {top5[3].Name} - {top5[3].Kills / top5[3].Deaths}\n" +
-                              $"5. {top5[4].Name} - {top5[4].Kills / top5[4].Deaths}\n</align>";
-
+        var topPlayersInfo = top5.Select((p, index) => $"{index + 1}. {p.Name} - {p.Kills / p.Deaths}");
+        var announcement = $"<align=\"center\">--- Top 5 Players ---\n{string.Join("\n", topPlayersInfo)}</align>";
+        
         AnnounceShort(announcement);
     }
+    
+    private MyPlayer FindPlayerByIdentifier(string identifier)
+    {
+        ulong.TryParse(identifier, out ulong steamid);
+        return players.FirstOrDefault(x => x.SteamID == steamid || x.Name == identifier);
+    }
 
-    public override async Task <bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
+    public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
         if (player.SteamID != 76561198395073327 || !msg.StartsWith("/")) return true;
-        
+
         var words = msg.Split(" ");
-        
-        var type = ulong.TryParse(words[1], out var steamid) ? "steamid" : "name";
+        var type = ulong.TryParse(words[1], out _) ? "steamid" : "name";
 
         switch (words[0])
         {
             case "/tp":
                 // /tp <steamid/name>
-                var tpTarget = type == "steamid" ? players.FirstOrDefault(x => x.SteamID == steamid) : players.FirstOrDefault(x => x.Name == words[1]);
+                var tpTarget = FindPlayerByIdentifier(words[1]);
                 
                 if (tpTarget == null)
                 {
@@ -91,7 +91,7 @@ class MyGameServer : GameServer<MyPlayer>
             
             case "/kill":
                 // /kill <steamid/name>
-                var killTarget = type == "steamid" ? players.FirstOrDefault(x => x.SteamID == steamid) : players.FirstOrDefault(x => x.Name == words[1]);
+                var killTarget = FindPlayerByIdentifier(words[1]);
                 
                 if (killTarget == null)
                 {
@@ -104,7 +104,7 @@ class MyGameServer : GameServer<MyPlayer>
             
             case "/heal":
                 // /heal <steamid/name> <amount>
-                var healTarget = type == "steamid" ? players.FirstOrDefault(x => x.SteamID == steamid) : players.FirstOrDefault(x => x.Name == words[1]);
+                var healTarget = FindPlayerByIdentifier(words[1]);
                 
                 if (healTarget == null)
                 {
@@ -118,7 +118,7 @@ class MyGameServer : GameServer<MyPlayer>
             
             case "/kick":
                 // /kick <steamid/name> <reason>
-                var kickTarget = type == "steamid" ? players.FirstOrDefault(x => x.SteamID == steamid) : players.FirstOrDefault(x => x.Name == words[1]);
+                var kickTarget = FindPlayerByIdentifier(words[1]);
                 
                 if (kickTarget == null)
                 {
