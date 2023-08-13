@@ -43,6 +43,7 @@ public class MyPlayer : Player<MyPlayer>
 
     public void UpdateWeapon()
     {
+        SetHeavyGadget("Sledge Hammer", 0, true);
         if (Level < gunGame.Count)
         {
             var w = new WeaponItem
@@ -50,10 +51,8 @@ public class MyPlayer : Player<MyPlayer>
                 ToolName = gunGame[Level].Name,
                 MainSight = Attachments.RedDot
             };
-            SetPrimaryWeapon(w, 10, true);
+            SetPrimaryWeapon(w, 10);
         }
-
-        SetHeavyGadget("Sledge Hammer", 0);
     }
 
     public int GetGameLenght()
