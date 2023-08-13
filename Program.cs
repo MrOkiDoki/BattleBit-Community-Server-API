@@ -45,12 +45,20 @@ internal class MyGameServer : GameServer<MyPlayer>
     };
 
     // Gun Game
-    public override async Task OnPlayerSpawned(MyPlayer player)
+    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
-        UpdateWeapon(player);
-//        player.SetRunningSpeedMultiplier(1.25f);
-//        player.SetFallDamageMultiplier(0f);
-//        player.SetJumpMultiplier(1.5f);
+        request.Loadout.PrimaryWeapon.Tool = mGunGame[player.Level];
+
+
+        request.Loadout.SecondaryWeapon = default;
+        request.Loadout.LightGadget = null;
+        request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
+        request.Loadout.Throwable = null;
+
+        player.SetRunningSpeedMultiplier(1.25f);
+        player.SetFallDamageMultiplier(0f);
+        player.SetJumpMultiplier(1.5f);
+        return request;
     }
 
     public int GetGameLenght()
