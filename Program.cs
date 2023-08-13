@@ -39,22 +39,19 @@ public class MyPlayer : Player<MyPlayer>
         Weapons.SSG69
     };
 
-    public int Level;
+    public int Level = 0;
 
-    public async void UpdateWeapon()
+    public void UpdateWeapon()
     {
-        await Task.Run(() =>
+        if (Level < gunGame.Count)
         {
-            if (Level < gunGame.Count)
+            var w = new WeaponItem
             {
-                var w = new WeaponItem
-                {
-                    ToolName = gunGame[Level].Name,
-                    MainSight = Attachments.RedDot
-                };
-                SetPrimaryWeapon(w, 10, true);
-            }
-        });
+                ToolName = gunGame[Level].Name,
+                MainSight = Attachments.RedDot
+            };
+            SetPrimaryWeapon(w, 10, true);
+        }
     }
 
     public int GetGameLenght()
@@ -118,6 +115,7 @@ internal class MyGameServer : GameServer<MyPlayer>
     public override Task OnPlayerConnected(MyPlayer player)
     {
         Console.WriteLine($"{player.Name} connected");
+
         return base.OnPlayerConnected(player);
     }
 
