@@ -1,0 +1,15 @@
+Name=Gun Game Test
+Password=caesarlp
+AntiCheat=EAC
+Hz=120
+Port=42069
+MaxPing=150
+LocalIP=127.0.0.1
+VoxelMode=false
+ConfigPath=
+ApiEndpoint=0.0.0.0:55669
+FixedSize=true
+FirstSize=small
+MaxSize=small
+FirstGamemode=TDM
+FirstMap=Azagor

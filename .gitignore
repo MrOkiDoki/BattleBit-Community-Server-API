@@ -170,5 +170,6 @@ tools/Cake.CoreCLR
 .env
 .git/
 
+#TODO Change config to configs in Admin and Streamer fetching
 #config files
-config*
+configs*
