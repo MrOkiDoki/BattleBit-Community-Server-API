@@ -1,6 +1,6 @@
-﻿using BattleBitAPI.Common;
+﻿using BattleBitAPI.Common.Enums;
 
-namespace BattleBitAPI.Server
+namespace BattleBitAPI.Server.Internal
 {
     public class RoundSettings<TPlayer> where TPlayer : Player<TPlayer>
     {
@@ -32,12 +32,12 @@ namespace BattleBitAPI.Server
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }
-        public double MaxTickets
+        public int MaxTickets
         {
-            get => this.mResources._RoundSettings.MaxTickets;
+            get => this.mResources._RoundSettings.PlayersToStart;
             set
             {
-                this.mResources._RoundSettings.MaxTickets = value;
+                this.mResources._RoundSettings.PlayersToStart = value;
                 this.mResources.IsDirtyRoundSettings = true;
             }
         }

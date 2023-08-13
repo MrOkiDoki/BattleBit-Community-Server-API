@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFrameworks>netstandard2.1;net7.0;net6.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <RootNamespace>CommunityServerAPI</RootNamespace>
+    <RootNamespace>BattleBitAPI</RootNamespace>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   

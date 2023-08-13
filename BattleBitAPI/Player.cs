@@ -4,6 +4,9 @@ using BattleBitAPI.Server;
 using System.Net;
 using System.Numerics;
 
+using BattleBitAPI.Common.Data;
+using BattleBitAPI.Common.Enums;
+
 namespace BattleBitAPI
 {
     public class Player<TPlayer> where TPlayer : Player<TPlayer>

@@ -1,4 +1,4 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common.Data
 {
     public class Gadget : IEquatable<string>, IEquatable<Gadget>
     {

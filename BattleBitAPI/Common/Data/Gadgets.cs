@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace BattleBitAPI.Common
+namespace BattleBitAPI.Common.Data
 {
     public static class Gadgets
     {

@@ -1,4 +1,7 @@
-﻿namespace BattleBitAPI.Common
+﻿using BattleBitAPI.Common.Datasets;
+using BattleBitAPI.Common.Enums;
+
+namespace BattleBitAPI.Common.Data
 {
     public struct PlayerLoadout
     {

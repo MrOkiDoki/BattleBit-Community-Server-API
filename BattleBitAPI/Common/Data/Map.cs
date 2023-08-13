@@ -1,4 +1,4 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common.Data
 {
     public class Map : IEquatable<string>, IEquatable<Map>
     {

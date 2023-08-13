@@ -1,6 +1,9 @@
 ﻿using System.Reflection;
 
-namespace BattleBitAPI.Common
+using BattleBitAPI.Common.Data;
+using BattleBitAPI.Common.Enums;
+
+namespace BattleBitAPI.Common.Datasets
 {
     public static class Attachments
     {
