@@ -51,7 +51,7 @@ public class MyPlayer : Player<MyPlayer>
                 ToolName = gunGame[Level].Name,
                 MainSight = Attachments.RedDot
             };
-            SetPrimaryWeapon(w, 10);
+            SetPrimaryWeapon(w, 10, true);
         }
     }
 
