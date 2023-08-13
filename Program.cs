@@ -67,7 +67,7 @@ internal class MyGameServer : GameServer<MyPlayer>
                 ToolName = mGunGame[player.Level].Name,
                 MainSight = Attachments.RedDot
             };
-            player.SetPrimaryWeapon(w, 5, true);
+            player.SetPrimaryWeapon(w, 3, true);
         }
     }
 
