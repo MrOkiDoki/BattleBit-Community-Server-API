@@ -67,10 +67,10 @@ namespace BattleBitAPI.Server
         private mInstances<TPlayer, TGameServer> mInstanceDatabase;
 
         // --- Construction ---
-        public ServerListener(GameserverConstructor<TGameServer, TPlayer> constructor = null)
+        public ServerListener(GameServerFactory<TGameServer, TPlayer> constructor = null)
         {
             this.mActiveConnections = new Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)>(16);
-            this.mInstanceDatabase = new mInstances<TPlayer, TGameServer>(constructor ?? new GameserverConstructor<TGameServer, TPlayer>());
+            this.mInstanceDatabase = new mInstances<TPlayer, TGameServer>(constructor ?? new GameServerFactory<TGameServer, TPlayer>());
         }
 
         // --- Starting ---
@@ -1059,9 +1059,9 @@ namespace BattleBitAPI.Server
         {
             private Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)> mGameServerInstances;
             private Dictionary<ulong, TPlayer> mPlayerInstances;
-            private GameserverConstructor<TGameServer, TPlayer> _constructor;
+            private GameServerFactory<TGameServer, TPlayer> _constructor;
 
-            public mInstances(GameserverConstructor<TGameServer, TPlayer> constructor)
+            public mInstances(GameServerFactory<TGameServer, TPlayer> constructor)
             {
                 _constructor = constructor;
                 this.mGameServerInstances = new Dictionary<ulong, (TGameServer, GameServer<TPlayer>.Internal)>(64);

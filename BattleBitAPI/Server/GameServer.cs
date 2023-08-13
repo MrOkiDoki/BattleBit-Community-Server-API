@@ -707,7 +707,7 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Static ----
-        public static TGameServer CreateInstance<TGameServer>(Internal @internal, GameserverConstructor<TGameServer, TPlayer> constructor) where TGameServer : GameServer<TPlayer>
+        public static TGameServer CreateInstance<TGameServer>(Internal @internal, GameServerFactory<TGameServer, TPlayer> constructor) where TGameServer : GameServer<TPlayer>
         {
             var gameServer = constructor.Create();
             gameServer.mInternal = @internal;
