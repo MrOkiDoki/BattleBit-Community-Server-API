@@ -55,10 +55,16 @@ internal class MyGameServer : GameServer<MyPlayer>
         request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
         request.Loadout.Throwable = null;
 
+
+        return request;
+    }
+
+    public override Task OnPlayerSpawned(MyPlayer player)
+    {
         player.SetRunningSpeedMultiplier(1.25f);
         player.SetFallDamageMultiplier(0f);
         player.SetJumpMultiplier(1.5f);
-        return request;
+        return base.OnPlayerSpawned(player);
     }
 
     public int GetGameLenght()
