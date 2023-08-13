@@ -47,7 +47,7 @@ internal class MyGameServer : GameServer<MyPlayer>
     // Gun Game
     public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
-        Task.Run(() =>
+        await Task.Run(() =>
         {
             request.Loadout.PrimaryWeapon.Tool = mGunGame[player.Level];
 
@@ -56,10 +56,8 @@ internal class MyGameServer : GameServer<MyPlayer>
             request.Loadout.LightGadget = null;
             request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
             request.Loadout.Throwable = null;
-
-
-            return request;
         });
+        return request;
     }
 
     public override Task OnPlayerSpawned(MyPlayer player)
@@ -154,6 +152,7 @@ internal class MyGameServer : GameServer<MyPlayer>
         officialStats.Progress.Prestige = 10;
         return base.OnGetPlayerStats(steamID, officialStats);
     }
+
 /*
  set admin role
     if (steamID == ID)
