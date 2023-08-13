@@ -63,30 +63,35 @@ public class MyPlayer : Player<MyPlayer>
 internal class MyGameServer : GameServer<MyPlayer>
 {
     // Gun Game
-    public override async Task OnPlayerSpawned(MyPlayer player)
-    {
-        player.UpdateWeapon();
-        player.SetRunningSpeedMultiplier(1.25f);
-        player.SetFallDamageMultiplier(0f);
-        player.SetJumpMultiplier(1.5f);
-    }
-
-    public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
-    {
-        var killer = onPlayerKillArguments.Killer;
-        var victim = onPlayerKillArguments.Victim;
-        killer.Level++;
-        if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-        if (killer.Level > killer.GetGameLenght())
-        {
-            AnnounceShort($"{killer.Name} won the Game");
-            ForceEndGame();
-        }
-
-        if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
-        killer.UpdateWeapon();
-        return true;
-    }
+//    public override async Task OnPlayerSpawned(MyPlayer player)
+//    {
+//        player.UpdateWeapon();
+//        player.SetRunningSpeedMultiplier(1.25f);
+//        player.SetFallDamageMultiplier(0f);
+//        player.SetJumpMultiplier(1.5f);
+//    }
+//
+//    public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
+//    {
+//        var killer = onPlayerKillArguments.Killer;
+//        var victim = onPlayerKillArguments.Victim;
+//        killer.Level++;
+//        if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
+//        if (killer.Level > killer.GetGameLenght())
+//        {
+//            AnnounceShort($"{killer.Name} won the Game");
+//            ForceEndGame();
+//        }
+//
+//        if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
+//        killer.UpdateWeapon();
+//        return true;
+//    }
+//    public override Task OnRoundEnded()
+//    {
+//        foreach (var player in AllPlayers) player.Level = 0;
+//        return base.OnRoundEnded();
+//    }
 
     public override Task OnConnected()
     {
@@ -112,11 +117,6 @@ internal class MyGameServer : GameServer<MyPlayer>
         return base.OnPlayerDisconnected(player);
     }
 
-    public override Task OnRoundEnded()
-    {
-        foreach (var player in AllPlayers) player.Level = 0;
-        return base.OnRoundEnded();
-    }
 
     public override Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
