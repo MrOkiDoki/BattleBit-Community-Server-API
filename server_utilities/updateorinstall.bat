@@ -16,9 +16,9 @@ set "enablebeta=%enablebeta:\r=%"
 
 rem Log in to SteamCMD using the provided credentials
 if "%enablebeta%"=="true" (
-    "steamcmd.exe" +force_install_dir "C:\Users\Administrator\Documents\battlebit" +login %steamusername% +app_update 671860 -beta %betaname% validate +quit
+    "C:\Users\Administrator\Documents\steamcmd\steamcmd.exe" +force_install_dir "C:\Users\Administrator\Documents\battlebit" +login %steamusername% +app_update 671860 -beta %betaname% validate +quit
 ) else (
-    "steamcmd.exe" +force_install_dir "C:\Users\Administrator\Desktop\BattleBit\BattleBit" +login %steamusername% +app_update 671860 validate +quit
+    "C:\Users\Administrator\Documents\steamcmd\steamcmd.exe" +force_install_dir "C:\Users\Administrator\Documents\battlebit" +login %steamusername% +app_update 671860 validate +quit
 )
 
 endlocal
