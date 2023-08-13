@@ -43,7 +43,7 @@ public class MyPlayer : Player<MyPlayer>
 
     public void UpdateWeapon()
     {
-        SetHeavyGadget("Sledge Hammer", 0, true);
+        SetHeavyGadget("Sledge Hammer", 0);
         if (Level < gunGame.Count)
         {
             var w = new WeaponItem
