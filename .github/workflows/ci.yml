@@ -1,0 +1,28 @@
+name: Continuous Integration
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        framework-version: [ 'net6.0', 'net7.0' ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+          dotnet-quality: 'ga'
+          
+      - name: Install dependencies
+        run: dotnet restore
+        
+      - name: Build for ${{ matrix.framework-version }}
+        run: dotnet build BattleBitAPI --framework ${{ matrix.framework-version }} --configuration Release --no-restore
