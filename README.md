@@ -14,11 +14,12 @@ This repository provides an API that can be used to handle events on your commun
 
 ### Writing
 
-Documentation and examples can be found on the [wiki](https://github.com/MrOkiDoki/BattleBit-Community-Server-API/wiki).
+Documentation and examples can be found on the [wiki](https://github.com/MrOkiDoki/BattleBit-Community-Server-API/wiki) (WIP).
 
 
-The way to use this API is to make an instance of `ServerListener` and add your own handlers to certain events that happen on your server(s).
-The easiest way to do this, is to add/put your own code in `Program.cs` and then build the project.
+
+The way to use this API is to make an instance of `ServerListener` (and start it) on which you pass the types of your *own* subclasses of `Player` & `GameServer`. In those subclasses, you can make your own overrides to the already existing methods in `Player` and `GameServer`. You can also add your own methods and fields/properties.
+The easiest way to get started with all of this, is to use `Program.cs` and add your overrides etc. into `MyPlayer` & `MyGameServer`.
 
 ### Building
 
@@ -27,11 +28,6 @@ This project can either be built by using [`dotnet build`](https://learn.microso
 ### Connecting to the gameserver
 
 After writing and compiling this project. You will want to host it somewhere. This could be on the same server that the gameserver runs on, or somewhere completely different. We do recommend to keep the latency to the gameserver minimal for smoother and faster communication. The same `ServerListener` can be used for *multiple* gameservers at the same time. You can specify the API server (address & port) in the launch options of the gameserver.
-
-#### Setting launch option in gameserver
-
-`-apiEndpoint=<apiIPAddress>:<apiPort>`
-
 
 # API Docs localization
 - [Chinese](/docs/README_zhCN.md)

@@ -25,8 +25,6 @@
 
 ### Connecting to the gameserver
 
-API를 작성하고 컴파일한 후, 다른 곳에서 호스팅하고 싶을 수도 있습니다. 게임 서버가 실행되는 서버와 동일한 서버일 수 있으며 완전히 다른 서버일 수도 있습니다. 보다 원활하고 빠른 통신을 위해 게임 서버와의 지연 시간을 최소화하는 것이 좋습니다. 동일한 `ServerListener`를 동시에 *여러* 게임 서버에 사용할 수 있습니다. 게임 서버의 실행 옵션에서 API 서버(주소와 포트)를 지정할 수 있습니다.
+이 API를 사용하는 방법은 `Player` 및 `GameServer`의 *자체* 서브클래스의 유형을 전달하는 `ServerListener` 인스턴스를 생성하고 이를 시작하는 것입니다.
 
-#### Setting launch option in gameserver
-
-`-apiEndpoint=<apiIPAddress>:<apiPort>`
+이러한 서브클래스에서는 `Player` 및 `GameServer`에 이미 존재하는 메서드를 오버라이드하여 자신만의 메서드, 필드 및 프로퍼티를 추가할 수 있습니다.
