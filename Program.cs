@@ -41,17 +41,20 @@ public class MyPlayer : Player<MyPlayer>
 
     public int Level;
 
-    public void UpdateWeapon()
+    public async void UpdateWeapon()
     {
-        if (Level < gunGame.Count)
+        await Task.Run(() =>
         {
-            var w = new WeaponItem
+            if (Level < gunGame.Count)
             {
-                ToolName = gunGame[Level].Name,
-                MainSight = Attachments.RedDot
-            };
-            SetPrimaryWeapon(w, 10, true);
-        }
+                var w = new WeaponItem
+                {
+                    ToolName = gunGame[Level].Name,
+                    MainSight = Attachments.RedDot
+                };
+                SetPrimaryWeapon(w, 10, true);
+            }
+        });
     }
 
     public int GetGameLenght()
@@ -65,24 +68,32 @@ internal class MyGameServer : GameServer<MyPlayer>
     // Gun Game
     public override async Task OnPlayerSpawned(MyPlayer player)
     {
-        player.UpdateWeapon();
-        player.SetFallDamageMultiplier(0f);
+        await Task.Run(() =>
+        {
+            player.UpdateWeapon();
+            player.SetRunningSpeedMultiplier(1.25f);
+            player.SetFallDamageMultiplier(0f);
+            player.SetJumpMultiplier(1.5f);
+        });
     }
 
     public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
     {
-        var killer = onPlayerKillArguments.Killer;
-        var victim = onPlayerKillArguments.Victim;
-        killer.Level++;
-        if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-        if (killer.Level > killer.GetGameLenght())
+        await Task.Run(() =>
         {
-            AnnounceShort($"{killer.Name} won the Game");
-            ForceEndGame();
-        }
+            var killer = onPlayerKillArguments.Killer;
+            var victim = onPlayerKillArguments.Victim;
+            killer.Level++;
+            if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
+            if (killer.Level > killer.GetGameLenght())
+            {
+                AnnounceShort($"{killer.Name} won the Game");
+                ForceEndGame();
+            }
 
-        if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
-        killer.UpdateWeapon();
+            if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
+            killer.UpdateWeapon();
+        });
         return true;
     }
 
