@@ -117,4 +117,11 @@ internal class MyGameServer : GameServer<MyPlayer>
         foreach (var player in AllPlayers) player.Level = 0;
         return base.OnRoundEnded();
     }
+
+    public override Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
+    {
+        if (msg.StartsWith("start")) ForceStartGame();
+
+        return base.OnPlayerTypedMessage(player, channel, msg);
+    }
 }
