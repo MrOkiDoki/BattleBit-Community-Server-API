@@ -68,13 +68,10 @@ internal class MyGameServer : GameServer<MyPlayer>
 //    // Gun Game
     public override async Task OnPlayerSpawned(MyPlayer player)
     {
-        await Task.Run(() =>
-        {
-            player.UpdateWeapon();
-            player.SetRunningSpeedMultiplier(1.25f);
-            player.SetFallDamageMultiplier(0f);
-            player.SetJumpMultiplier(1.5f);
-        });
+        player.UpdateWeapon();
+        player.SetRunningSpeedMultiplier(1.25f);
+        player.SetFallDamageMultiplier(0f);
+        player.SetJumpMultiplier(1.5f);
     }
 //
 //    public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
@@ -108,6 +105,7 @@ internal class MyGameServer : GameServer<MyPlayer>
     public override Task OnConnected()
     {
         Console.WriteLine("Server connected");
+        ServerSettings.BleedingEnabled = false;
         return base.OnConnected();
     }
 
