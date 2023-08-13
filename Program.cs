@@ -60,15 +60,12 @@ internal class MyGameServer : GameServer<MyPlayer>
 
     public void UpdateWeapon(MyPlayer player)
     {
-        if (player.Level < mGunGame.Count)
+        var w = new WeaponItem
         {
-            var w = new WeaponItem
-            {
-                ToolName = "M9",
-                MainSight = Attachments.RedDot
-            };
-            player.SetPrimaryWeapon(w, 3, true);
-        }
+            ToolName = mGunGame[player.Level].Name,
+            MainSight = Attachments.RedDot
+        };
+        player.SetPrimaryWeapon(w, 3, true);
     }
 
     public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
@@ -113,7 +110,7 @@ internal class MyGameServer : GameServer<MyPlayer>
     public override Task OnPlayerConnected(MyPlayer player)
     {
         Console.WriteLine($"{player.Name} connected");
-
+        player.Level = 0;
         return base.OnPlayerConnected(player);
     }
 
