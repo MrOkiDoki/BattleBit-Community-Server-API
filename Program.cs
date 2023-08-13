@@ -45,13 +45,13 @@ internal class MyGameServer : GameServer<MyPlayer>
     };
 
     // Gun Game
-//    public override async Task OnPlayerSpawned(MyPlayer player)
-//    {
-//        UpdateWeapon(player);
+    public override async Task OnPlayerSpawned(MyPlayer player)
+    {
+        UpdateWeapon(player);
 //        player.SetRunningSpeedMultiplier(1.25f);
 //        player.SetFallDamageMultiplier(0f);
 //        player.SetJumpMultiplier(1.5f);
-//    }
+    }
 
     public int GetGameLenght()
     {
