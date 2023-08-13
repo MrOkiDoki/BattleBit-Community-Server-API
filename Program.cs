@@ -52,8 +52,6 @@ public class MyPlayer : Player<MyPlayer>
             };
             SetPrimaryWeapon(w, 10, true);
         }
-
-        SetHeavyGadget("Sledge Hammer", 0);
     }
 
     public int GetGameLenght()
@@ -67,34 +65,51 @@ internal class MyGameServer : GameServer<MyPlayer>
     // Gun Game
     public override async Task OnPlayerSpawned(MyPlayer player)
     {
-        await Task.Run(() =>
-            {
-                player.UpdateWeapon();
-                player.SetRunningSpeedMultiplier(1.25f);
-                player.SetFallDamageMultiplier(0f);
-                player.SetJumpMultiplier(1.5f);
-            }
-        );
+        player.UpdateWeapon();
+        player.SetRunningSpeedMultiplier(1.25f);
+        player.SetFallDamageMultiplier(0f);
+        player.SetJumpMultiplier(1.5f);
     }
 
     public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
     {
-        await Task.Run(() =>
+        var killer = onPlayerKillArguments.Killer;
+        var victim = onPlayerKillArguments.Victim;
+        killer.Level++;
+        if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
+        if (killer.Level > killer.GetGameLenght())
         {
-            var killer = onPlayerKillArguments.Killer;
-            var victim = onPlayerKillArguments.Victim;
-            killer.Level++;
-            if (killer.Level == killer.GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-            if (killer.Level > killer.GetGameLenght())
-            {
-                AnnounceShort($"{killer.Name} won the Game");
-                ForceEndGame();
-            }
+            AnnounceShort($"{killer.Name} won the Game");
+            ForceEndGame();
+        }
 
-            if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
-            killer.UpdateWeapon();
-        });
+        if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
+        killer.UpdateWeapon();
         return true;
+    }
+
+    public override Task OnConnected()
+    {
+        Console.WriteLine("Server connected");
+        return base.OnConnected();
+    }
+
+    public override Task OnDisconnected()
+    {
+        Console.WriteLine("Server disconnected");
+        return base.OnDisconnected();
+    }
+
+    public override Task OnPlayerConnected(MyPlayer player)
+    {
+        Console.WriteLine($"{player.Name} connected");
+        return base.OnPlayerConnected(player);
+    }
+
+    public override Task OnPlayerDisconnected(MyPlayer player)
+    {
+        Console.WriteLine($"{player.Name} disconnected");
+        return base.OnPlayerDisconnected(player);
     }
 
     public override Task OnRoundEnded()
