@@ -47,16 +47,19 @@ internal class MyGameServer : GameServer<MyPlayer>
     // Gun Game
     public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
-        request.Loadout.PrimaryWeapon.Tool = mGunGame[player.Level];
+        Task.Run(() =>
+        {
+            request.Loadout.PrimaryWeapon.Tool = mGunGame[player.Level];
 
 
-        request.Loadout.SecondaryWeapon = default;
-        request.Loadout.LightGadget = null;
-        request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
-        request.Loadout.Throwable = null;
+            request.Loadout.SecondaryWeapon = default;
+            request.Loadout.LightGadget = null;
+            request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
+            request.Loadout.Throwable = null;
 
 
-        return request;
+            return request;
+        });
     }
 
     public override Task OnPlayerSpawned(MyPlayer player)
@@ -84,19 +87,22 @@ internal class MyGameServer : GameServer<MyPlayer>
 
     public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
     {
-        var killer = onPlayerKillArguments.Killer;
-        var victim = onPlayerKillArguments.Victim;
-        killer.Level++;
-        if (killer.Level == GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-        if (killer.Level > GetGameLenght())
+        Task.Run(() =>
         {
-            AnnounceShort($"{killer.Name} won the Game");
-            ForceEndGame();
-        }
+            var killer = onPlayerKillArguments.Killer;
+            var victim = onPlayerKillArguments.Victim;
+            killer.Level++;
+            if (killer.Level == GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
+            if (killer.Level > GetGameLenght())
+            {
+                AnnounceShort($"{killer.Name} won the Game");
+                ForceEndGame();
+            }
 
-        killer.SetHP(100);
-        if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
-        UpdateWeapon(killer);
+            killer.SetHP(100);
+            if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
+            UpdateWeapon(killer);
+        });
     }
 
     public override Task OnRoundEnded()
@@ -148,7 +154,13 @@ internal class MyGameServer : GameServer<MyPlayer>
         officialStats.Progress.Prestige = 10;
         return base.OnGetPlayerStats(steamID, officialStats);
     }
-
+/*
+ set admin role
+    if (steamID == ID)
+    {
+        stats.Roles = Roles.Admin;
+    }
+    */
     public override Task OnSavePlayerStats(ulong steamID, PlayerStats stats)
     {
         return base.OnSavePlayerStats(steamID, stats);
