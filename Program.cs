@@ -83,6 +83,7 @@ internal class MyGameServer : GameServer<MyPlayer>
             ForceEndGame();
         }
 
+        killer.SetHP(100);
         if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
         UpdateWeapon(killer);
     }
@@ -101,6 +102,7 @@ internal class MyGameServer : GameServer<MyPlayer>
         ServerSettings.BleedingEnabled = false;
         return base.OnConnected();
     }
+
 
     public override Task OnDisconnected()
     {
