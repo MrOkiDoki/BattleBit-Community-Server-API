@@ -71,24 +71,21 @@ internal class MyGameServer : GameServer<MyPlayer>
         }
     }
 
-    public override async Task<bool> OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
+    public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
     {
-        await Task.Run(() =>
+        var killer = onPlayerKillArguments.Killer;
+        var victim = onPlayerKillArguments.Victim;
+        killer.Level++;
+        if (killer.Level == GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
+        if (killer.Level > GetGameLenght())
         {
-            var killer = onPlayerKillArguments.Killer;
-            var victim = onPlayerKillArguments.Victim;
-            killer.Level++;
-            if (killer.Level == GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-            if (killer.Level > GetGameLenght())
-            {
-                AnnounceShort($"{killer.Name} won the Game");
-                ForceEndGame();
-            }
+            AnnounceShort($"{killer.Name} won the Game");
+            ForceEndGame();
+        }
 
-            if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
-            UpdateWeapon(killer);
-        });
-        return true;
+        if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
+        UpdateWeapon(killer);
+        
     }
 
     public override Task OnRoundEnded()
@@ -131,5 +128,17 @@ internal class MyGameServer : GameServer<MyPlayer>
         if (msg.StartsWith("start")) ForceStartGame();
 
         return base.OnPlayerTypedMessage(player, channel, msg);
+    }
+
+    public override Task<PlayerStats> OnGetPlayerStats(ulong steamID, PlayerStats officialStats)
+    {
+        officialStats.Progress.Rank = 200;
+        officialStats.Progress.Prestige = 10;
+        return base.OnGetPlayerStats(steamID, officialStats);
+    }
+
+    public override Task OnSavePlayerStats(ulong steamID, PlayerStats stats)
+    {
+        return base.OnSavePlayerStats(steamID, stats);
     }
 }
