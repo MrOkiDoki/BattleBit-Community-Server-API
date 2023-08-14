@@ -20,7 +20,7 @@
         PlayerDisconnected = 51,
         OnPlayerTypedMessage = 52,
         OnPlayerKilledAnotherPlayer = 53,
-        GetPlayerStats = 54,
+        OnPlayerJoining = 54,
         SavePlayerStats = 55,
         OnPlayerAskingToChangeRole = 56,
         OnPlayerChangedRole = 57,
@@ -34,5 +34,7 @@
         NotifyNewMapRotation = 65,
         NotifyNewGamemodeRotation = 66,
         NotifyNewRoundState = 67,
+        OnPlayerAskingToChangeTeam = 68,
+        GameTick = 69,
     }
 }

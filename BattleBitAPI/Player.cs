@@ -8,21 +8,40 @@ namespace BattleBitAPI
 {
     public class Player<TPlayer> where TPlayer : Player<TPlayer>
     {
-        public ulong SteamID { get; internal set; }
-        public string Name { get; internal set; }
-        public IPAddress IP { get; internal set; }
-        public GameServer<TPlayer> GameServer { get; internal set; }
-        public GameRole Role { get; internal set; }
-        public Team Team { get; internal set; }
-        public Squads Squad { get; internal set; }
-        public bool IsAlive { get; internal set; }
-        public PlayerLoadout CurrentLoadout { get; internal set; } = new PlayerLoadout();
-        public PlayerWearings CurrentWearings { get; internal set; } = new PlayerWearings();
+        private Internal mInternal;
 
+        // ---- Variables ----
+        public ulong SteamID => mInternal.SteamID;
+        public string Name => mInternal.Name;
+        public IPAddress IP => mInternal.IP;
+        public GameServer<TPlayer> GameServer => mInternal.GameServer;
+        public GameRole Role => mInternal.Role;
+        public Team Team => mInternal.Team;
+        public Squads Squad => mInternal.Squad;
+        public bool InSquad => mInternal.Squad != Squads.NoSquad;
+        public int PingMs => mInternal.PingMs;
+
+        public float HP => mInternal.HP;
+        public bool IsAlive => mInternal.HP >= 0f;
+        public bool IsUp => mInternal.HP > 0f;
+        public bool IsDown => mInternal.HP == 0f;
+        public bool IsDead => mInternal.HP == -1f;
+
+        public Vector3 Position => mInternal.Position;
+        public PlayerStand Standing => mInternal.Standing;
+        public LeaningSide Leaning => mInternal.Leaning;
+        public LoadoutIndex CurrentLoadoutIndex => mInternal.CurrentLoadoutIndex;
+        public bool InVehicle => mInternal.InVehicle;
+        public bool IsBleeding => mInternal.IsBleeding;
+        public PlayerLoadout CurrentLoadout => mInternal.CurrentLoadout;
+        public PlayerWearings CurrentWearings => mInternal.CurrentWearings;
+
+        // ---- Events ----
         public virtual void OnCreated()
         {
 
         }
+
         public virtual async Task OnConnected()
         {
 
@@ -35,11 +54,28 @@ namespace BattleBitAPI
         {
 
         }
+        public virtual async Task OnChangedTeam()
+        {
+
+        }
+        public virtual async Task OnChangedRole(GameRole newRole)
+        {
+
+        }
+        public virtual async Task OnJoinedSquad(Squads newSquad)
+        {
+
+        }
+        public virtual async Task OnLeftSquad(Squads oldSquad)
+        {
+
+        }
         public virtual async Task OnDisconnected()
         {
 
         }
 
+        // ---- Functions ----
         public void Kick(string reason = "")
         {
             this.GameServer.Kick(this, reason);
@@ -51,6 +87,10 @@ namespace BattleBitAPI
         public void ChangeTeam()
         {
             this.GameServer.ChangeTeam(this);
+        }
+        public void ChangeTeam(Team team)
+        {
+            this.GameServer.ChangeTeam(this, team);
         }
         public void KickFromSquad()
         {
@@ -71,6 +111,10 @@ namespace BattleBitAPI
         public void Message(string msg)
         {
             this.GameServer.MessageToPlayer(this, msg);
+        }
+        public void Message(string msg, float fadeoutTime)
+        {
+            this.GameServer.MessageToPlayer(this, msg, fadeoutTime);
         }
         public void SetNewRole(GameRole role)
         {
@@ -116,7 +160,7 @@ namespace BattleBitAPI
         {
             GameServer.SetFallDamageMultiplier(this, value);
         }
-        public void SetPrimaryWeapon(WeaponItem item, int extraMagazines,bool clear=false)
+        public void SetPrimaryWeapon(WeaponItem item, int extraMagazines, bool clear = false)
         {
             GameServer.SetPrimaryWeapon(this, item, extraMagazines, clear);
         }
@@ -140,9 +184,57 @@ namespace BattleBitAPI
         {
             GameServer.SetThrowable(this, item, extra, clear);
         }
+
+        // ---- Static ----
+        public static TPlayer CreateInstance<TPlayer>(Player<TPlayer>.Internal @internal) where TPlayer : Player<TPlayer>
+        {
+            TPlayer player = (TPlayer)Activator.CreateInstance(typeof(TPlayer));
+            player.mInternal = @internal;
+            return player;
+        }
+
+        // ---- Overrides ----
         public override string ToString()
         {
             return this.Name + " (" + this.SteamID + ")";
+        }
+
+        // ---- Internal ----
+        public class Internal
+        {
+            public ulong SteamID;
+            public string Name;
+            public IPAddress IP;
+            public GameServer<TPlayer> GameServer;
+            public GameRole Role;
+            public Team Team;
+            public Squads Squad;
+            public int PingMs = 999;
+
+            public bool IsAlive;
+            public float HP;
+            public Vector3 Position;
+            public PlayerStand Standing;
+            public LeaningSide Leaning;
+            public LoadoutIndex CurrentLoadoutIndex;
+            public bool InVehicle;
+            public bool IsBleeding;
+            public PlayerLoadout CurrentLoadout;
+            public PlayerWearings CurrentWearings;
+
+            public void OnDie()
+            {
+                this.IsAlive = false;
+                this.HP = -1f;
+                this.Position = default;
+                this.Standing = PlayerStand.Standing;
+                this.Leaning = LeaningSide.None;
+                this.CurrentLoadoutIndex = LoadoutIndex.Primary;
+                this.InVehicle = false;
+                this.IsBleeding = false;
+                this.CurrentLoadout = new PlayerLoadout();
+                this.CurrentWearings = new PlayerWearings();
+            }
         }
     }
 }

@@ -25,9 +25,9 @@ namespace BattleBitAPI.Server
         public string Map => mInternal.Map;
         public MapSize MapSize => mInternal.MapSize;
         public MapDayNight DayNight => mInternal.DayNight;
-        public int CurrentPlayers => mInternal.CurrentPlayers;
-        public int InQueuePlayers => mInternal.InQueuePlayers;
-        public int MaxPlayers => mInternal.MaxPlayers;
+        public int CurrentPlayerCount => mInternal.CurrentPlayerCount;
+        public int InQueuePlayerCount => mInternal.InQueuePlayerCount;
+        public int MaxPlayerCount => mInternal.MaxPlayerCount;
         public string LoadingScreenText => mInternal.LoadingScreenText;
         public string ServerRulesText => mInternal.ServerRulesText;
         public ServerSettings<TPlayer> ServerSettings => mInternal.ServerSettings;
@@ -264,15 +264,18 @@ namespace BattleBitAPI.Server
         {
             return true;
         }
-        public virtual async Task<PlayerStats> OnGetPlayerStats(ulong steamID, PlayerStats officialStats)
+        public virtual async Task OnPlayerJoiningToServer(ulong steamID, PlayerJoiningArguments args)
         {
-            return officialStats;
         }
         public virtual async Task OnSavePlayerStats(ulong steamID, PlayerStats stats)
         {
 
         }
-        public virtual async Task<bool> OnPlayerRequestingToChangeRole(TPlayer player, GameRole role)
+        public virtual async Task<bool> OnPlayerRequestingToChangeRole(TPlayer player, GameRole requestedRole)
+        {
+            return true;
+        }
+        public virtual async Task<bool> OnPlayerRequestingToChangeTeam(TPlayer player, Team requestedTeam)
         {
             return true;
         }
@@ -417,6 +420,17 @@ namespace BattleBitAPI.Server
         {
             ChangeTeam(player.SteamID);
         }
+        public void ChangeTeam(ulong steamID, Team team)
+        {
+            if (team == Team.TeamA)
+                ExecuteCommand("changeteam " + steamID + " a");
+            else if (team == Team.TeamB)
+                ExecuteCommand("changeteam " + steamID + " b");
+        }
+        public void ChangeTeam(Player<TPlayer> player, Team team)
+        {
+            ChangeTeam(player.SteamID, team);
+        }
         public void KickFromSquad(ulong steamID)
         {
             ExecuteCommand("squadkick " + steamID);
@@ -425,13 +439,13 @@ namespace BattleBitAPI.Server
         {
             KickFromSquad(player.SteamID);
         }
-        public void DisbandPlayerSSquad(ulong steamID)
+        public void DisbandPlayerSquad(ulong steamID)
         {
             ExecuteCommand("squaddisband " + steamID);
         }
         public void DisbandPlayerCurrentSquad(Player<TPlayer> player)
         {
-            DisbandPlayerSSquad(player.SteamID);
+            DisbandPlayerSquad(player.SteamID);
         }
         public void PromoteSquadLeader(ulong steamID)
         {
@@ -456,6 +470,14 @@ namespace BattleBitAPI.Server
         public void MessageToPlayer(Player<TPlayer> player, string msg)
         {
             MessageToPlayer(player.SteamID, msg);
+        }
+        public void MessageToPlayer(ulong steamID, string msg, float fadeOutTime)
+        {
+            ExecuteCommand("msgf " + steamID + " " + fadeOutTime + " " + msg);
+        }
+        public void MessageToPlayer(Player<TPlayer> player, string msg, float fadeOutTime)
+        {
+            MessageToPlayer(player.SteamID, msg, fadeOutTime);
         }
         public void SetRoleTo(ulong steamID, GameRole role)
         {
@@ -664,7 +686,7 @@ namespace BattleBitAPI.Server
         }
         public void SetThrowable(Player<TPlayer> player, string tool, int extra, bool clear = false)
         {
-            SetThrowable(player.SteamID, tool, extra,clear);
+            SetThrowable(player.SteamID, tool, extra, clear);
         }
 
         // ---- Closing ----
@@ -727,9 +749,9 @@ namespace BattleBitAPI.Server
             public string Map;
             public MapSize MapSize;
             public MapDayNight DayNight;
-            public int CurrentPlayers;
-            public int InQueuePlayers;
-            public int MaxPlayers;
+            public int CurrentPlayerCount;
+            public int InQueuePlayerCount;
+            public int MaxPlayerCount;
             public string LoadingScreenText;
             public string ServerRulesText;
             public ServerSettings<TPlayer> ServerSettings;
@@ -814,9 +836,9 @@ namespace BattleBitAPI.Server
                 this.Map = map;
                 this.MapSize = mapSize;
                 this.DayNight = dayNight;
-                this.CurrentPlayers = currentPlayers;
-                this.InQueuePlayers = inQueuePlayers;
-                this.MaxPlayers = maxPlayers;
+                this.CurrentPlayerCount = currentPlayers;
+                this.InQueuePlayerCount = inQueuePlayers;
+                this.MaxPlayerCount = maxPlayers;
                 this.LoadingScreenText = loadingScreenText;
                 this.ServerRulesText = serverRulesText;
 
