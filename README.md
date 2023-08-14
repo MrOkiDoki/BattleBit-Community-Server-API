@@ -1,7 +1,8 @@
 # BattleBit Remastered Community Server API
 
- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
- Language English | [中文](/README-zhCN.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Language English | [中文](/README-zhCN.md)
  
 This repository provides an API that can be used to handle events on your community server(s) and manipulate them.
 
