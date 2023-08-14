@@ -1,4 +1,4 @@
-﻿using CommunityServerAPI.BattleBitAPI.Server;
+﻿using BattleBitAPI.Server;
 
 namespace BattleBitAPI.Server
 {

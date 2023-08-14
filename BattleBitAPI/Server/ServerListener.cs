@@ -9,7 +9,7 @@ using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Common.Serialization;
 using BattleBitAPI.Networking;
 using CommunityServerAPI.BattleBitAPI;
-using CommunityServerAPI.BattleBitAPI.Server;
+using BattleBitAPI.Server;
 
 namespace BattleBitAPI.Server
 {
