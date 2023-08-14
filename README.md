@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Language English | [中文](/README-zhCN.md) | [한국어](/REAME_koKR.md)
+Language English | [中文](/README-zhCN.md) | [한국어](/README_koKR.md)
 
 This repository provides an API that can be used to handle events on your community server(s) and manipulate them.
 
