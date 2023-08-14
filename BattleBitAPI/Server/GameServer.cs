@@ -908,13 +908,14 @@ namespace BattleBitAPI.Server
         {
             public float DamageMultiplier = 1.0f;
             public bool BleedingEnabled = true;
-            public bool StamineEnabled = false;
+            public bool StaminaEnabled = false;
             public bool FriendlyFireEnabled = false;
             public bool HideMapVotes = true;
             public bool OnlyWinnerTeamCanVote = false;
             public bool HitMarkersEnabled = true;
             public bool PointLogEnabled = true;
             public bool SpectatorEnabled = true;
+            public float CaptureFlagSpeedMultiplier = 1f;
 
             public byte MedicLimitPerSquad = 8;
             public byte EngineerLimitPerSquad = 8;
@@ -925,13 +926,15 @@ namespace BattleBitAPI.Server
             {
                 ser.Write(this.DamageMultiplier);
                 ser.Write(this.BleedingEnabled);
-                ser.Write(this.StamineEnabled);
+                ser.Write(this.StaminaEnabled);
                 ser.Write(this.FriendlyFireEnabled);
                 ser.Write(this.HideMapVotes);
                 ser.Write(this.OnlyWinnerTeamCanVote);
                 ser.Write(this.HitMarkersEnabled);
                 ser.Write(this.PointLogEnabled);
                 ser.Write(this.SpectatorEnabled);
+                ser.Write(this.CaptureFlagSpeedMultiplier);
+
                 ser.Write(this.MedicLimitPerSquad);
                 ser.Write(this.EngineerLimitPerSquad);
                 ser.Write(this.SupportLimitPerSquad);
@@ -941,13 +944,14 @@ namespace BattleBitAPI.Server
             {
                 this.DamageMultiplier = ser.ReadFloat();
                 this.BleedingEnabled = ser.ReadBool();
-                this.StamineEnabled = ser.ReadBool();
+                this.StaminaEnabled = ser.ReadBool();
                 this.FriendlyFireEnabled = ser.ReadBool();
                 this.HideMapVotes = ser.ReadBool();
                 this.OnlyWinnerTeamCanVote = ser.ReadBool();
                 this.HitMarkersEnabled = ser.ReadBool();
                 this.PointLogEnabled = ser.ReadBool();
                 this.SpectatorEnabled = ser.ReadBool();
+                this.CaptureFlagSpeedMultiplier = ser.ReadFloat();
 
                 this.MedicLimitPerSquad = ser.ReadInt8();
                 this.EngineerLimitPerSquad = ser.ReadInt8();
@@ -958,7 +962,7 @@ namespace BattleBitAPI.Server
             {
                 this.DamageMultiplier = 1.0f;
                 this.BleedingEnabled = true;
-                this.StamineEnabled = false;
+                this.StaminaEnabled = false;
                 this.FriendlyFireEnabled = false;
                 this.HideMapVotes = true;
                 this.OnlyWinnerTeamCanVote = false;

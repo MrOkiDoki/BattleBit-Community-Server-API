@@ -18,19 +18,23 @@ class Program
 }
 class MyPlayer : Player<MyPlayer>
 {
-
+    public override async Task OnConnected()
+    {
+    }
 }
 class MyGameServer : GameServer<MyPlayer>
 {
     public override async Task OnConnected()
     {
         ForceStartGame();
+
+        ServerSettings.PointLogEnabled = false;
     }
 
 
     public override async Task OnPlayerConnected(MyPlayer player)
     {
-        await Console.Out.WriteLineAsync("Connected: "+player);
+        await Console.Out.WriteLineAsync("Connected: " + player);
     }
     public override async Task OnPlayerSpawned(MyPlayer player)
     {
@@ -50,7 +54,7 @@ class MyGameServer : GameServer<MyPlayer>
     }
     public override async Task OnAPlayerRevivedAnotherPlayer(MyPlayer from, MyPlayer to)
     {
-        await Console.Out.WriteLineAsync(from+" revived "+to);
+        await Console.Out.WriteLineAsync(from + " revived " + to);
     }
     public override async Task OnPlayerDisconnected(MyPlayer player)
     {
