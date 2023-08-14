@@ -25,11 +25,7 @@ class MyGameServer : GameServer<MyPlayer>
     {
         ForceStartGame();
     }
-    public override async Task OnTick()
+    public override async Task OnPlayerJoiningToServer(ulong steamID, PlayerJoiningArguments args)
     {
-        foreach (var player in AllPlayers)
-        {
-            await Console.Out.WriteLineAsync(player + " : " + player.HP + " : " + player.Position);
-        }
     }
 }

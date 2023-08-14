@@ -186,7 +186,7 @@ namespace BattleBitAPI.Server
                             gamePort = readStream.ReadUInt16();
                         }
 
-                        //Read is Port protected
+                        //Read is server protected
                         bool isPasswordProtected;
                         {
                             readStream.Reset();
