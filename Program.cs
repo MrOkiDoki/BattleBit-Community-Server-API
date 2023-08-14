@@ -1,6 +1,8 @@
-﻿using BattleBitAPI;
+﻿using System.Text.Json;
+using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
+using CommunityServerAPI;
 
 internal class Program
 {
@@ -15,135 +17,323 @@ internal class Program
 
 public class MyPlayer : Player<MyPlayer>
 {
+    public bool IsAdmin;
+    public bool IsStreamer;
     public int Level;
 }
 
-internal class MyGameServer : GameServer<MyPlayer>
+public class MyGameServer : GameServer<MyPlayer>
 {
-    private readonly List<Weapon> mGunGame = new()
+    private readonly List<APICommand> ChatCommands = new()
     {
-        Weapons.Glock18,
-        Weapons.Groza,
-        Weapons.ACR,
-        Weapons.AK15,
-        Weapons.AK74,
-        Weapons.G36C,
-        Weapons.HoneyBadger,
-        Weapons.KrissVector,
-        Weapons.L86A1,
-        Weapons.L96,
-        Weapons.M4A1,
-        Weapons.M9,
-        Weapons.M110,
-        Weapons.M249,
-        Weapons.MK14EBR,
-        Weapons.MK20,
-        Weapons.MP7,
-        Weapons.PP2000,
-        Weapons.SCARH,
-        Weapons.SSG69
+        new HealCommand(),
+        new KillCommand(),
+        new TeleportCommand(),
+        new GrenadeCommand(),
+        new ForceStartCommand(),
+        new SpeedCommand(),
+        new HelpCommand(),
+        new RevealCommand(),
+        new ChangeDamageCommand(),
+        new ChangeReceivedDamageCommand(),
+        new ChangeAmmoCommand(),
+        new SetStreamerCommand(),
+        new RemoveStreamerCommand(),
+        new OpCommand(),
+        new DeopCommand()
     };
 
-    // Gun Game
-    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
+
+    private readonly string mAdminJson = "./config/admins.json";
+    private readonly List<ulong> mAdmins = new();
+
+    private readonly List<MyGameServer> mGameModes = new()
     {
-        await Task.Run(() => { UpdateWeapon(player); });
-        return request;
+        new GunGame()
+    };
+
+    //public CommandQueue queue = new();
+    private readonly List<ulong> mListedStreamers = new();
+    private readonly string mSteamIdJson = "./config/streamer_steamids.json";
+
+    private MyGameServer mCurrentGameMode;
+    private int mGameModeIndex;
+
+    //modular GameModes: CHECK if new Gamemodes need more passthrough
+
+    public override Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> args)
+    {
+        mCurrentGameMode.OnAPlayerKilledAnotherPlayer(args);
+        return base.OnAPlayerKilledAnotherPlayer(args);
     }
+
 
     public override Task OnPlayerSpawned(MyPlayer player)
     {
-        player.SetRunningSpeedMultiplier(1.25f);
-        player.SetFallDamageMultiplier(0f);
-        player.SetJumpMultiplier(1.5f);
+        mCurrentGameMode.OnPlayerSpawned(player);
         return base.OnPlayerSpawned(player);
     }
 
-    public int GetGameLenght()
+    public override Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
-        return mGunGame.Count;
-    }
-
-    public void UpdateWeapon(MyPlayer player)
-    {
-        var w = new WeaponItem
-        {
-            ToolName = mGunGame[player.Level].Name,
-            MainSight = Attachments.RedDot
-        };
-
-
-        player.SetPrimaryWeapon(w, -1, true); //currently buggy everything will crash
-    }
-
-    public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
-    {
-        Task.Run(() =>
-        {
-            var killer = onPlayerKillArguments.Killer;
-            var victim = onPlayerKillArguments.Victim;
-            killer.Level++;
-            if (killer.Level == GetGameLenght()) AnnounceShort($"{killer.Name} only needs 1 more Kill");
-            if (killer.Level > GetGameLenght())
-            {
-                AnnounceShort($"{killer.Name} won the Game");
-                ForceEndGame();
-            }
-
-            killer.SetHP(100);
-            if (onPlayerKillArguments.KillerTool == "Sledge Hammer" && victim.Level != 0) victim.Level--;
-            UpdateWeapon(killer);
-        });
+        mCurrentGameMode.OnPlayerSpawning(player, request);
+        return base.OnPlayerSpawning(player, request);
     }
 
     public override Task OnRoundEnded()
     {
-        foreach (var player in AllPlayers) player.Level = 0;
+        mGameModeIndex = (mGameModeIndex + 1) % mGameModes.Count;
+        mCurrentGameMode.OnRoundEnded();
         return base.OnRoundEnded();
     }
 
-
-//basic Functionality
-    public override Task OnConnected()
+    public override Task OnRoundStarted()
     {
-        Console.WriteLine("Server connected");
-        ServerSettings.BleedingEnabled = false;
-        return base.OnConnected();
+        mCurrentGameMode = mGameModes[mGameModeIndex];
+        mCurrentGameMode.OnRoundStarted();
+        return base.OnRoundStarted();
     }
 
+    //basic Functionality
 
     public override Task OnDisconnected()
     {
         Console.WriteLine("Server disconnected");
+        mCurrentGameMode.OnDisconnected();
         return base.OnDisconnected();
     }
 
-    public override Task OnPlayerConnected(MyPlayer player)
-    {
-        Console.WriteLine($"{player.Name} connected");
-        player.Level = 0;
-        return base.OnPlayerConnected(player);
-    }
 
     public override Task OnPlayerDisconnected(MyPlayer player)
     {
         Console.WriteLine($"{player.Name} disconnected");
+        mCurrentGameMode.OnPlayerDisconnected(player);
         return base.OnPlayerDisconnected(player);
     }
 
-
-    public override Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
-    {
-        if (msg.StartsWith("start")) ForceStartGame();
-
-        return base.OnPlayerTypedMessage(player, channel, msg);
-    }
 
     public override Task<PlayerStats> OnGetPlayerStats(ulong steamID, PlayerStats officialStats)
     {
         officialStats.Progress.Rank = 200;
         officialStats.Progress.Prestige = 10;
+        mCurrentGameMode.OnGetPlayerStats(steamID, officialStats);
         return base.OnGetPlayerStats(steamID, officialStats);
+    }
+
+    public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
+    {
+        if (!player.IsAdmin) return true;
+        var splits = msg.Split(" ");
+        foreach (var command in ChatCommands)
+            if (splits[0] == command.CommandPrefix)
+            {
+                var c = command.ChatCommand(player, channel, msg);
+                await HandleCommand(c);
+                return false;
+            }
+
+        await mCurrentGameMode.OnPlayerTypedMessage(player, channel, msg);
+        return true;
+    }
+
+
+    public void SaveStreamers()
+    {
+        try
+        {
+            var newJson =
+                JsonSerializer.Serialize(mListedStreamers, new JsonSerializerOptions { WriteIndented = true });
+
+            // Write the JSON to the file, overwriting its content
+            File.WriteAllText(mSteamIdJson, newJson);
+
+            Console.WriteLine("Steam IDs updated and saved to the file.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Steam IDs couldn't be updated and saved to the file." + ex);
+        }
+    }
+
+    public void SaveAdmins()
+    {
+        try
+        {
+            var newJson =
+                JsonSerializer.Serialize(mAdmins, new JsonSerializerOptions { WriteIndented = true });
+
+            // Write the JSON to the file, overwriting its content
+            File.WriteAllText(mAdminJson, newJson);
+
+            Console.WriteLine("Admins updated and saved to the file.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Admins couldn't be updated and saved to the file." + ex);
+        }
+    }
+
+    public override async Task OnConnected()
+    {
+        await Console.Out.WriteLineAsync(GameIP + " Connected");
+        await Console.Out.WriteLineAsync("Fetching configs");
+        try
+        {
+            // Read the entire JSON file as a string
+            var jsonFilePath = mSteamIdJson;
+            var jsonString = File.ReadAllText(jsonFilePath);
+
+            // Parse the JSON array using System.Text.Json
+            var steamIds = JsonSerializer.Deserialize<ulong[]>(jsonString);
+            foreach (var steamId in steamIds) mListedStreamers.Add(steamId);
+            await Console.Out.WriteLineAsync("Fetching streamers succeeded");
+        }
+        catch (Exception ex)
+        {
+            await Console.Out.WriteLineAsync("Fetching streamers failed: " + ex);
+        }
+
+        try
+        {
+            // Read the entire JSON file as a string
+            var jsonFilePath = mAdminJson;
+            var jsonString = File.ReadAllText(jsonFilePath);
+
+            // Parse the JSON array using System.Text.Json
+            var steamIds = JsonSerializer.Deserialize<ulong[]>(jsonString);
+            foreach (var steamId in steamIds) mAdmins.Add(steamId);
+            await Console.Out.WriteLineAsync("Fetching admins succeeded");
+        }
+        catch (Exception ex)
+        {
+            await Console.Out.WriteLineAsync("Fetching admins failed: " + ex);
+        }
+
+        await mCurrentGameMode.OnConnected();
+    }
+
+
+    public override async Task<bool> OnPlayerConnected(MyPlayer player)
+    {
+        await Console.Out.WriteLineAsync(player.Name + " Connected");
+        if (!mListedStreamers.Contains(player.SteamID)) return true;
+
+        player.IsStreamer = true;
+        if (!mAdmins.Contains(player.SteamID)) return true;
+
+        player.IsAdmin = true;
+        return true;
+    }
+
+    //public override async Task OnTick()
+    //{
+    //    while (!queue.IsEmpty())
+    //    {
+    //        Command c = queue.Dequeue();
+    //        HandleCommand(c);
+    //    }
+    //}
+
+    public async Task HandleCommand(Command c)
+    {
+        // need testing if blocking
+        foreach (var player in AllPlayers)
+        {
+            if (!player.IsStreamer) continue;
+            if (player.SteamID != c.StreamerId) continue;
+            switch (c.Action)
+            {
+                case ActionType.Heal:
+                {
+                    player.Heal(c.Amount);
+                    player.Message($"{c.ExecutorName} has healed you for {c.Amount}");
+                    break;
+                }
+                case ActionType.Kill:
+                {
+                    player.Kill();
+                    player.Message($"{c.ExecutorName} has killed you");
+                    break;
+                }
+                case ActionType.Grenade:
+                {
+                    //can't get player pos right now   
+                    player.Message($"{c.ExecutorName} has spawned a grenade on you");
+                    break;
+                }
+                case ActionType.Teleport:
+                {
+                    //relative teleport????
+                    player.Message($"{c.ExecutorName} has teleported you {c.Data}");
+                    break;
+                }
+                case ActionType.Speed:
+                {
+                    player.SetRunningSpeedMultiplier(c.Amount);
+                    player.Message($"{c.ExecutorName} has set your speed to {c.Amount}x");
+                    break;
+                }
+                case ActionType.Reveal:
+                {
+                    //set marker on Map
+                    player.Message($"{c.ExecutorName} has revealed your Position");
+                    break;
+                }
+                case ActionType.ChangeAmmo:
+                {
+                    player.Message($"{c.ExecutorName} has set your Ammo to {c.Amount}");
+                    break;
+                }
+                case ActionType.Start:
+                {
+                    player.Message("Forcing start");
+                    ForceStartGame();
+                    break;
+                }
+                case ActionType.Help:
+                {
+                    foreach (var command in ChatCommands) SayToChat($"{command.CommandPrefix} {command.Help}");
+                    break;
+                }
+                case ActionType.ChangeDamage:
+                {
+                    player.SetGiveDamageMultiplier(c.Amount);
+                    player.Message($"{c.ExecutorName} has set your Dmg Multiplier to {c.Amount}");
+                    break;
+                }
+                case ActionType.ChangeReceivedDamage:
+                {
+                    player.SetReceiveDamageMultiplier(c.Amount);
+                    player.Message($"{c.ExecutorName} has set your recieve Dmg Multiplier to {c.Amount}");
+                    break;
+                }
+                case ActionType.SetStreamer:
+                {
+                    player.IsStreamer = true;
+                    SaveStreamers();
+                    break;
+                }
+                case ActionType.RemoveStreamer:
+                {
+                    player.IsStreamer = false;
+                    SaveStreamers();
+                    break;
+                }
+                case ActionType.GrantOP:
+                {
+                    player.IsAdmin = true;
+                    SaveAdmins();
+                    break;
+                }
+                case ActionType.RevokeOP:
+                {
+                    player.IsAdmin = false;
+                    SaveAdmins();
+                    break;
+                }
+                // Add more cases for other ActionType values as needed
+            }
+        }
     }
 
 /*
