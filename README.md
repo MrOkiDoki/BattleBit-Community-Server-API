@@ -26,6 +26,8 @@ The easiest way to get started with all of this, is to use `Program.cs` and add 
 
 This project can either be built by using [`dotnet build`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build) on the command-line or by using the run / build options inside your preferred IDE.
 
-### Connecting to the gameserver
+### Connecting to the gameserver(s)
 
-After writing and compiling this project. You will want to host it somewhere. This could be on the same server that the gameserver runs on, or somewhere completely different. We do recommend to keep the latency to the gameserver minimal for smoother and faster communication. The same `ServerListener` can be used for *multiple* gameservers at the same time. You can specify the API server (address & port) in the launch options of the gameserver.
+After writing and compiling this project. You will want to host it somewhere. This could be on the same server that the gameservers run on, or somewhere completely different. We do recommend to keep the latency to the gameserver minimal for smoother and faster communication. The same `ServerListener` can be used for *multiple* gameservers at the same time. You can specify the API server (address & port) in the launch options of the gameserver.
+
+The gameserver connects to the API with the launch argument `"-apiendpoint=<IP>:<port>"`, where `port` is the port that the listener listens on and the `IP` is the IP of the API server.
