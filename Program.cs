@@ -71,7 +71,9 @@ internal class MyGameServer : GameServer<MyPlayer>
             ToolName = mGunGame[player.Level].Name,
             MainSight = Attachments.RedDot
         };
-        // player.SetPrimaryWeapon(w, 0, true); //currently buggy everything other than 0 will crash
+
+
+        player.SetPrimaryWeapon(w, -1, true); //currently buggy everything will crash
     }
 
     public override async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<MyPlayer> onPlayerKillArguments)
