@@ -1,69 +1,69 @@
 ﻿using BattleBitAPI.Common;
-using CommunityServerAPI.BattleBitAPI.Server;
 
-namespace BattleBitAPI.Server
+namespace BattleBitAPI.Server;
+
+public class RoundSettings<TPlayer> where TPlayer : Player<TPlayer>
 {
-    public class RoundSettings<TPlayer> where TPlayer : Player<TPlayer>
+    private readonly GameServer<TPlayer>.Internal mResources;
+
+    public RoundSettings(GameServer<TPlayer>.Internal resources)
     {
-        private GameServer<TPlayer>.Internal mResources;
-        public RoundSettings(GameServer<TPlayer>.Internal resources)
-        {
-            mResources = resources;
-        }
+        mResources = resources;
+    }
 
-        public GameState State
-        {
-            get => this.mResources._RoundSettings.State;
-        }
-        public double TeamATickets
-        {
-            get => this.mResources._RoundSettings.TeamATickets;
-            set
-            {
-                this.mResources._RoundSettings.TeamATickets = value;
-                this.mResources.IsDirtyRoundSettings = true;
-            }
-        }
-        public double TeamBTickets
-        {
-            get => this.mResources._RoundSettings.TeamBTickets;
-            set
-            {
-                this.mResources._RoundSettings.TeamBTickets = value;
-                this.mResources.IsDirtyRoundSettings = true;
-            }
-        }
-        public double MaxTickets
-        {
-            get => this.mResources._RoundSettings.MaxTickets;
-            set
-            {
-                this.mResources._RoundSettings.MaxTickets = value;
-                this.mResources.IsDirtyRoundSettings = true;
-            }
-        }
-        public int PlayersToStart
-        {
-            get => this.mResources._RoundSettings.PlayersToStart;
-            set
-            {
-                this.mResources._RoundSettings.PlayersToStart = value;
-                this.mResources.IsDirtyRoundSettings = true;
-            }
-        }
-        public int SecondsLeft
-        {
-            get => this.mResources._RoundSettings.SecondsLeft;
-            set
-            {
-                this.mResources._RoundSettings.SecondsLeft = value;
-                this.mResources.IsDirtyRoundSettings = true;
-            }
-        }
+    public GameState State => mResources._RoundSettings.State;
 
-        public void Reset()
+    public double TeamATickets
+    {
+        get => mResources._RoundSettings.TeamATickets;
+        set
         {
-
+            mResources._RoundSettings.TeamATickets = value;
+            mResources.IsDirtyRoundSettings = true;
         }
+    }
+
+    public double TeamBTickets
+    {
+        get => mResources._RoundSettings.TeamBTickets;
+        set
+        {
+            mResources._RoundSettings.TeamBTickets = value;
+            mResources.IsDirtyRoundSettings = true;
+        }
+    }
+
+    public double MaxTickets
+    {
+        get => mResources._RoundSettings.MaxTickets;
+        set
+        {
+            mResources._RoundSettings.MaxTickets = value;
+            mResources.IsDirtyRoundSettings = true;
+        }
+    }
+
+    public int PlayersToStart
+    {
+        get => mResources._RoundSettings.PlayersToStart;
+        set
+        {
+            mResources._RoundSettings.PlayersToStart = value;
+            mResources.IsDirtyRoundSettings = true;
+        }
+    }
+
+    public int SecondsLeft
+    {
+        get => mResources._RoundSettings.SecondsLeft;
+        set
+        {
+            mResources._RoundSettings.SecondsLeft = value;
+            mResources.IsDirtyRoundSettings = true;
+        }
+    }
+
+    public void Reset()
+    {
     }
 }

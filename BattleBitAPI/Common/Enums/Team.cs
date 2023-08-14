@@ -1,9 +1,8 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common;
+
+public enum Team : byte
 {
-    public enum Team : byte
-    {
-        TeamA = 0, 
-        TeamB = 1,
-        None = 2
-    }
+    TeamA = 0,
+    TeamB = 1,
+    None = 2
 }

@@ -1,7 +1,10 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common;
+
+public enum PlayerSpawningPosition : byte
 {
-    public enum PlayerSpawningPosition : byte
-    {
-        SpawnAtPoint, SpawnAtRally, SpawnAtFriend, SpawnAtVehicle, Null
-    }
+    SpawnAtPoint,
+    SpawnAtRally,
+    SpawnAtFriend,
+    SpawnAtVehicle,
+    Null
 }

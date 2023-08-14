@@ -1,7 +1,8 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common;
+
+public enum PlayerStand : byte
 {
-    public enum PlayerStand : byte
-    {
-        Standing = 0, Crouching = 1, Proning = 2
-    }
+    Standing = 0,
+    Crouching = 1,
+    Proning = 2
 }

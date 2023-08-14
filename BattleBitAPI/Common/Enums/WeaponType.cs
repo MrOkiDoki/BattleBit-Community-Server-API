@@ -1,17 +1,16 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common;
+
+public enum WeaponType
 {
-    public enum WeaponType : int
-    {
-        Rifle,
-        DMR,
-        SniperRifle,
-        LightSupportGun_LSG,
-        LightMachineGun_LMG,
-        SubmachineGun_SMG,
-        Pistol,
-        AutoPistol,
-        HeavyPistol,
-        Carbine,
-        PersonalDefenseWeapon_PDW,
-    }
+    Rifle,
+    DMR,
+    SniperRifle,
+    LightSupportGun_LSG,
+    LightMachineGun_LMG,
+    SubmachineGun_SMG,
+    Pistol,
+    AutoPistol,
+    HeavyPistol,
+    Carbine,
+    PersonalDefenseWeapon_PDW
 }

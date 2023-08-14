@@ -1,69 +1,74 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common;
+
+public class Map : IEquatable<string>, IEquatable<Map>
 {
-    public class Map : IEquatable<string>, IEquatable<Map>
+    public Map(string name)
     {
-        public string Name { get; private set; }
-        public Map(string name)
-        {
-            Name = name;
-        }
+        Name = name;
+    }
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
-        public bool Equals(string other)
-        {
-            if (other == null)
-                return false;
-            return this.Name.Equals(other);
-        }
-        public bool Equals(Map other)
-        {
-            if (other == null)
-                return false;
-            return this.Name.Equals(other.Name);
-        }
+    public string Name { get; }
 
-        public static bool operator ==(string left, Map right)
-        {
-            bool leftNull = object.ReferenceEquals(left, null);
-            bool rightNull = object.ReferenceEquals(right, null);
-            if (leftNull && rightNull)
-                return true;
-            if (leftNull || rightNull)
-                return false;
-            return right.Name.Equals(left);
-        }
-        public static bool operator !=(string left, Map right)
-        {
-            bool leftNull = object.ReferenceEquals(left, null);
-            bool rightNull = object.ReferenceEquals(right, null);
-            if (leftNull && rightNull)
-                return true;
-            if (leftNull || rightNull)
-                return false;
-            return right.Name.Equals(left);
-        }
-        public static bool operator ==(Map right, string left)
-        {
-            bool leftNull = object.ReferenceEquals(left, null);
-            bool rightNull = object.ReferenceEquals(right, null);
-            if (leftNull && rightNull)
-                return true;
-            if (leftNull || rightNull)
-                return false;
-            return right.Name.Equals(left);
-        }
-        public static bool operator !=(Map right, string left)
-        {
-            bool leftNull = object.ReferenceEquals(left, null);
-            bool rightNull = object.ReferenceEquals(right, null);
-            if (leftNull && rightNull)
-                return true;
-            if (leftNull || rightNull)
-                return false;
-            return right.Name.Equals(left);
-        }
+    public bool Equals(Map other)
+    {
+        if (other == null)
+            return false;
+        return Name.Equals(other.Name);
+    }
+
+    public bool Equals(string other)
+    {
+        if (other == null)
+            return false;
+        return Name.Equals(other);
+    }
+
+    public override string ToString()
+    {
+        return Name;
+    }
+
+    public static bool operator ==(string left, Map right)
+    {
+        var leftNull = ReferenceEquals(left, null);
+        var rightNull = ReferenceEquals(right, null);
+        if (leftNull && rightNull)
+            return true;
+        if (leftNull || rightNull)
+            return false;
+        return right.Name.Equals(left);
+    }
+
+    public static bool operator !=(string left, Map right)
+    {
+        var leftNull = ReferenceEquals(left, null);
+        var rightNull = ReferenceEquals(right, null);
+        if (leftNull && rightNull)
+            return true;
+        if (leftNull || rightNull)
+            return false;
+        return right.Name.Equals(left);
+    }
+
+    public static bool operator ==(Map right, string left)
+    {
+        var leftNull = ReferenceEquals(left, null);
+        var rightNull = ReferenceEquals(right, null);
+        if (leftNull && rightNull)
+            return true;
+        if (leftNull || rightNull)
+            return false;
+        return right.Name.Equals(left);
+    }
+
+    public static bool operator !=(Map right, string left)
+    {
+        var leftNull = ReferenceEquals(left, null);
+        var rightNull = ReferenceEquals(right, null);
+        if (leftNull && rightNull)
+            return true;
+        if (leftNull || rightNull)
+            return false;
+        return right.Name.Equals(left);
     }
 }

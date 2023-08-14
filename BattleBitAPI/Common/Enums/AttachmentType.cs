@@ -1,13 +1,12 @@
-﻿namespace BattleBitAPI.Common
+﻿namespace BattleBitAPI.Common;
+
+public enum AttachmentType
 {
-    public enum AttachmentType
-    {
-        MainSight,
-        TopSight,
-        CantedSight,
-        Barrel,
-        UnderRail,
-        SideRail,
-        Bolt,
-    }
+    MainSight,
+    TopSight,
+    CantedSight,
+    Barrel,
+    UnderRail,
+    SideRail,
+    Bolt
 }
