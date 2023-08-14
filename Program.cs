@@ -47,16 +47,7 @@ internal class MyGameServer : GameServer<MyPlayer>
     // Gun Game
     public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
-        await Task.Run(() =>
-        {
-            request.Loadout.PrimaryWeapon.Tool = mGunGame[player.Level];
-
-
-            request.Loadout.SecondaryWeapon = default;
-            request.Loadout.LightGadget = null;
-            request.Loadout.HeavyGadget = Gadgets.SledgeHammer;
-            request.Loadout.Throwable = null;
-        });
+        await Task.Run(() => { UpdateWeapon(player); });
         return request;
     }
 
