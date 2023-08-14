@@ -87,7 +87,6 @@ class MyGameServer : GameServer<MyPlayer>
         if (player.SteamID != 76561198395073327 || !msg.StartsWith("/")) return true;
 
         var words = msg.Split(" ");
-        var type = ulong.TryParse(words[1], out _) ? "steamid" : "name";
 
         switch (words[0])
         {
