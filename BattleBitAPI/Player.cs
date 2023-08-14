@@ -3,6 +3,7 @@ using BattleBitAPI.Networking;
 using BattleBitAPI.Server;
 using System.Net;
 using System.Numerics;
+using System.Windows.Markup;
 
 namespace BattleBitAPI
 {
@@ -15,9 +16,38 @@ namespace BattleBitAPI
         public string Name => mInternal.Name;
         public IPAddress IP => mInternal.IP;
         public GameServer<TPlayer> GameServer => mInternal.GameServer;
-        public GameRole Role => mInternal.Role;
-        public Team Team => mInternal.Team;
-        public Squads Squad => mInternal.Squad;
+        public GameRole Role
+        {
+            get => mInternal.Role;
+            set
+            {
+                if (value == mInternal.Role)
+                    return;
+                SetNewRole(value);
+            }
+        }
+        public Team Team
+        {
+            get => mInternal.Team;
+            set
+            {
+                if (mInternal.Team != value)
+                    ChangeTeam(value);
+            }
+        }
+        public Squads Squad
+        {
+            get => mInternal.Squad;
+            set
+            {
+                if (value == mInternal.Squad)
+                    return;
+                if (value == Squads.NoSquad)
+                    KickFromSquad();
+                else
+                    JoinSquad(value);
+            }
+        }
         public bool InSquad => mInternal.Squad != Squads.NoSquad;
         public int PingMs => mInternal.PingMs;
 
@@ -27,9 +57,13 @@ namespace BattleBitAPI
         public bool IsDown => mInternal.HP == 0f;
         public bool IsDead => mInternal.HP == -1f;
 
-        public Vector3 Position => mInternal.Position;
-        public PlayerStand Standing => mInternal.Standing;
-        public LeaningSide Leaning => mInternal.Leaning;
+        public Vector3 Position
+        {
+            get => mInternal.Position;
+            set => Teleport(value);
+        }
+        public PlayerStand StandingState => mInternal.Standing;
+        public LeaningSide LeaningState => mInternal.Leaning;
         public LoadoutIndex CurrentLoadoutIndex => mInternal.CurrentLoadoutIndex;
         public bool InVehicle => mInternal.InVehicle;
         public bool IsBleeding => mInternal.IsBleeding;
@@ -47,6 +81,22 @@ namespace BattleBitAPI
 
         }
         public virtual async Task OnSpawned()
+        {
+
+        }
+        public virtual async Task OnDowned()
+        {
+
+        }
+        public virtual async Task OnGivenUp()
+        {
+
+        }
+        public virtual async Task OnRevivedByAnotherPlayer()
+        {
+
+        }
+        public virtual async Task OnRevivedAnotherPlayer()
         {
 
         }
@@ -95,6 +145,10 @@ namespace BattleBitAPI
         public void KickFromSquad()
         {
             this.GameServer.KickFromSquad(this);
+        }
+        public void JoinSquad(Squads targetSquad)
+        {
+            this.GameServer.JoinSquad(this, targetSquad);
         }
         public void DisbandTheSquad()
         {

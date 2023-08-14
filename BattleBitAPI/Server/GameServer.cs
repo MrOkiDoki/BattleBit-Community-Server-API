@@ -307,7 +307,15 @@ namespace BattleBitAPI.Server
         {
 
         }
-        public virtual async Task OnAPlayerKilledAnotherPlayer(OnPlayerKillArguments<TPlayer> args)
+        public virtual async Task OnPlayerGivenUp(TPlayer player)
+        {
+
+        }
+        public virtual async Task OnAPlayerDownedAnotherPlayer(OnPlayerKillArguments<TPlayer> args)
+        {
+
+        }
+        public virtual async Task OnAPlayerRevivedAnotherPlayer(TPlayer from,TPlayer to)
         {
 
         }
@@ -438,6 +446,14 @@ namespace BattleBitAPI.Server
         public void KickFromSquad(Player<TPlayer> player)
         {
             KickFromSquad(player.SteamID);
+        }
+        public void JoinSquad(ulong steamID, Squads targetSquad)
+        {
+            ExecuteCommand("setsquad " + steamID + " " + ((int)targetSquad));
+        }
+        public void JoinSquad(Player<TPlayer> player, Squads targetSquad)
+        {
+            JoinSquad(player.SteamID, targetSquad);
         }
         public void DisbandPlayerSquad(ulong steamID)
         {

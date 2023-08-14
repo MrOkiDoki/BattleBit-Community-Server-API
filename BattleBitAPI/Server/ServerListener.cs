@@ -701,6 +701,15 @@ namespace BattleBitAPI.Server
 
                             if (exist)
                             {
+                                var @internal = mInstanceDatabase.GetPlayerInternals(steamID);
+                                if (@internal.HP > -1f)
+                                {
+                                    @internal.OnDie();
+
+                                    player.OnDied();
+                                    server.OnPlayerDied((TPlayer)player);
+                                }
+
                                 player.OnDisconnected();
                                 server.OnPlayerDisconnected((TPlayer)player);
                             }
@@ -740,7 +749,7 @@ namespace BattleBitAPI.Server
                         }
                         break;
                     }
-                case NetworkCommuncation.OnPlayerKilledAnotherPlayer:
+                case NetworkCommuncation.OnAPlayerDownedAnotherPlayer:
                     {
                         if (stream.CanRead(8 + 12 + 8 + 12 + 2 + 1 + 1))
                         {
@@ -770,7 +779,8 @@ namespace BattleBitAPI.Server
                                             KillerTool = tool,
                                         };
 
-                                        server.OnAPlayerKilledAnotherPlayer(args);
+                                        victimClient.OnDowned();
+                                        server.OnAPlayerDownedAnotherPlayer(args);
                                     }
                                 }
                             }
@@ -1136,6 +1146,38 @@ namespace BattleBitAPI.Server
                                     @internal.InVehicle = inSeat;
                                     @internal.IsBleeding = isBleeding;
                                     @internal.PingMs = ping;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerGivenUp:
+                    {
+                        if (stream.CanRead(8))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            if (resources.TryGetPlayer(steamID, out var client))
+                            {
+                                client.OnGivenUp();
+                                server.OnPlayerGivenUp((TPlayer)client);
+                            }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnPlayerRevivedAnother:
+                    {
+                        if (stream.CanRead(8 + 8))
+                        {
+                            ulong from = stream.ReadUInt64();
+                            ulong to = stream.ReadUInt64();
+                            if (resources.TryGetPlayer(to, out var toClient))
+                            {
+                                toClient.OnRevivedByAnotherPlayer();
+
+                                if (resources.TryGetPlayer(from, out var fromClient))
+                                {
+                                    fromClient.OnRevivedAnotherPlayer();
+                                    server.OnAPlayerRevivedAnotherPlayer((TPlayer)fromClient, (TPlayer)toClient);
                                 }
                             }
                         }
