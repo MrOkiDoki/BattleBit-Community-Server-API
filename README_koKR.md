@@ -1,6 +1,8 @@
 # BattleBit Remastered Community Server API
 
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Language [English](/README.md) | [中文](/README-zhCN.md) | 한국어
  
 이 레포지토리는 BattleBit Remastered 커뮤니티 서버에서 이벤트를 처리하고 조작하는 데 사용할 수 있는 API를 제공합니다.
 
@@ -29,3 +31,5 @@
 ### Connecting to the gameserver
 
 API를 작성하고 컴파일한 후, 다른 곳에서 호스팅하고 싶을 수도 있습니다. 게임 서버가 실행되는 서버와 동일한 서버일 수 있으며 완전히 다른 서버일 수도 있습니다. 보다 원활하고 빠른 통신을 위해 게임 서버와의 지연 시간을 최소화하는 것이 좋습니다. 동일한 `ServerListener`를 동시에 *여러* 게임 서버에 사용할 수 있습니다. 게임 서버의 실행 옵션에서 API 서버(주소와 포트)를 지정할 수 있습니다.
+
+게임 서버는 실행 인수 `-apiendpoint=<IP>:<PORT>`를 사용하여 API에 연결합니다. 여기서 <PORT>는 리스터가 수신하는 포트이고, IP는 API 서버의 IP입니다.
