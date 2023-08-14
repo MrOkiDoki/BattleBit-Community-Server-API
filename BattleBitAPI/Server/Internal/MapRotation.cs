@@ -1,4 +1,6 @@
-﻿namespace BattleBitAPI.Server
+﻿using CommunityServerAPI.BattleBitAPI.Server;
+
+namespace BattleBitAPI.Server
 {
     public class MapRotation<TPlayer> where TPlayer : Player<TPlayer>
     {
@@ -39,6 +41,27 @@
                     return false;
             mResources.IsDirtyMapRotation = true;
             return true;
+        }
+        public void SetRotation(params string[] maps)
+        {
+            lock (mResources._MapRotation)
+            {
+                mResources._MapRotation.Clear();
+                foreach (var item in maps)
+                    mResources._MapRotation.Add(item);
+            }
+            mResources.IsDirtyMapRotation = true;
+        }
+        public void ClearRotation()
+        {
+            lock (mResources._MapRotation)
+            {
+                if (mResources._MapRotation.Count == 0)
+                    return;
+
+                mResources._MapRotation.Clear();
+            }
+            mResources.IsDirtyMapRotation = true;
         }
 
         public void Reset()

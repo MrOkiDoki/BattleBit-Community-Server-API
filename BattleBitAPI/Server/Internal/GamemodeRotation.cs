@@ -1,4 +1,7 @@
-﻿namespace BattleBitAPI.Server
+﻿using BattleBitAPI.Common;
+using CommunityServerAPI.BattleBitAPI.Server;
+
+namespace BattleBitAPI.Server
 {
     public class GamemodeRotation<TPlayer> where TPlayer : Player<TPlayer>
     {
@@ -33,6 +36,27 @@
                     return false;
             mResources.IsDirtyGamemodeRotation = true;
             return true;
+        }
+        public void SetRotation(params string[] gamemodes)
+        {
+            lock (mResources._GamemodeRotation)
+            {
+                mResources._GamemodeRotation.Clear();
+                foreach (var item in gamemodes)
+                    mResources._GamemodeRotation.Add(item);
+            }
+            mResources.IsDirtyGamemodeRotation = true;
+        }
+        public void ClearRotation()
+        {
+            lock (mResources._GamemodeRotation)
+            {
+                if (mResources._GamemodeRotation.Count == 0)
+                    return;
+
+                mResources._GamemodeRotation.Clear();
+            }
+            mResources.IsDirtyGamemodeRotation = true;
         }
 
         public void Reset()

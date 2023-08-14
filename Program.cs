@@ -15,6 +15,8 @@ class Program
 
         Thread.Sleep(-1);
     }
+
+
 }
 class MyPlayer : Player<MyPlayer>
 {
@@ -49,7 +51,19 @@ class MyGameServer : GameServer<MyPlayer>
 
     public override async Task OnGameStateChanged(GameState oldState, GameState newState)
     {
-        await Console.Out.WriteLineAsync("State changed to -> " + newState);
+        await Console.Out.WriteLineAsync("Giveup: " + player);
+    }
+    public override async Task OnPlayerDied(MyPlayer player)
+    {
+        await Console.Out.WriteLineAsync("Died: " + player);
+    }
+    public override async Task OnAPlayerRevivedAnotherPlayer(MyPlayer from, MyPlayer to)
+    {
+        await Console.Out.WriteLineAsync(from + " revived " + to);
+    }
+    public override async Task OnPlayerDisconnected(MyPlayer player)
+    {
+        await Console.Out.WriteLineAsync("Disconnected: " + player);
     }
 
     public override async Task OnTick()
