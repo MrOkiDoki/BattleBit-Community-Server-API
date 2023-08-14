@@ -1,7 +1,8 @@
 
 # BattleBit Remastered 服务器 API
 
- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Language [English Readme](/README.md) | 中文
  
 这个 repo 是 BBR（像素战地）的服务端 API
