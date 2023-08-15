@@ -3,7 +3,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Language [English](/README.md) | 中文 | [한국어](/README_koKR.md)
+Language [English](/README.md) | 中文 | [한국어](/README-koKR.md)
  
 这个 repo 是 BBR（像素战地）的服务端 API
 
