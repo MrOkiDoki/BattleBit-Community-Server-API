@@ -28,8 +28,12 @@ Language [English](/README.md) | [中文](/README-zhCN.md) | 한국어
 
 이 프로젝트는 CMD에서 [`dotnet build`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build)를 사용하거나 선호하는 IDE에서 Run / Build 옵션을 이용하여 빌드할 수 있습니다.
 
+또는, Docker를 사용할 수 있습니다. 이를 사용하는 쉬운 방법은 `docker compose up`을 실행하는 것입니다.
+
 ### Connecting to the gameserver
 
 API를 작성하고 컴파일한 후, 다른 곳에서 호스팅하고 싶을 수도 있습니다. 게임 서버가 실행되는 서버와 동일한 서버일 수 있으며 완전히 다른 서버일 수도 있습니다. 보다 원활하고 빠른 통신을 위해 게임 서버와의 지연 시간을 최소화하는 것이 좋습니다. 동일한 `ServerListener`를 동시에 *여러* 게임 서버에 사용할 수 있습니다. 게임 서버의 실행 옵션에서 API 서버(주소와 포트)를 지정할 수 있습니다.
 
 게임 서버는 실행 인수 `-apiendpoint=<IP>:<PORT>`를 사용하여 API에 연결합니다. 여기서 <PORT>는 리스터가 수신하는 포트이고, IP는 API 서버의 IP입니다.
+
+현재 프로젝트의 API는 `29294` 포트에서 수신 대기하도록 구성되어 있습니다. 이를 변경하려면 `listener.start(port)`에서 변경해야 합니다. `29294` 포트는 Docker에 노출되며 Docker Compose에서 호스트의 동일한 포트에 바인딩됩니다. 즉, Docker를 사용할 때 `Dockerfile` 및 `docker-compose.yml` (Compose를 사용할 때)에서도 포트를 변경해야 합니다. [EXPOSE 문서](https://docs.docker.com/engine/reference/builder/#expose) 와 [NETWORKING 문서](https://docs.docker.com/compose/networking/)를 참고하세요.
