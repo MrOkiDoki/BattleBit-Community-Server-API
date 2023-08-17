@@ -37,4 +37,4 @@ BBR（像素战地）的服务端 API 在部署后可以提供`社区服`所需�
 
 #### 调整 API 端口
 如果游戏服务端实例与本 API 实例不在同一个实例上进行部署，且你想修改本 API 实例的端口 `29294`，你可以查看 `Progran.cs` 中 `listener.Start(29294);` 并把 `29294` 修改为你想指定或防火墙等安全策略已通过的端口号。
-如果你的实例运行在 Docker 容器中，端口 `29294` （或你修改的其他端口）也同时需要在 Docker 容器配置中进行修改并对外暴露。也就是说你需要修改 `Dockerfile` 且（如果有使用到容器集群编排）还有需要修改 `docker-compose.yml` 。相关参考资料可以查看 Docker 官方文档 [EXPOSE in the Dockerfile reference](https://docs.docker.com/engine/reference/builder/#expose) 以及 [networking in Compose](https://docs.docker.com/compose/networking/)。
+如果你的实例运行在 Docker 容器中，端口 `29294` （或你修改的其他端口）也同时需要在 Docker 容器配置中进行修改并对外暴露。也就是说你需要修改 `Dockerfile` 且（如果有使用到容器集群编排）还有可能需要修改 `docker-compose.yml` 。相关参考资料可以查看 Docker 官方文档 [EXPOSE in the Dockerfile reference](https://docs.docker.com/engine/reference/builder/#expose) 以及 [networking in Compose](https://docs.docker.com/compose/networking/)。
