@@ -56,9 +56,15 @@ class MyGameServer : GameServer<MyPlayer>
     }
     public override async Task OnTick()
     {
+        foreach (var item in AllPlayers)
+        {
+            item.GameServer.ForceStartGame();
+        }
     }
-    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
+    public override async Task<OnPlayerSpawnArguments?> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
+        return null;
+
         request.Wearings.Eye = "Eye_Zombie_01";
         request.Wearings.Face = "Face_Zombie_01";
         request.Wearings.Face = "Hair_Zombie_01";

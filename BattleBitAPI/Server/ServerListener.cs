@@ -976,7 +976,7 @@ namespace BattleBitAPI.Server
                         {
                             ulong steamID = stream.ReadUInt64();
 
-                            var request = new OnPlayerSpawnArguments();
+                            OnPlayerSpawnArguments request = new OnPlayerSpawnArguments();
                             request.Read(stream);
                             ushort vehicleID = stream.ReadUInt16();
 
@@ -984,15 +984,25 @@ namespace BattleBitAPI.Server
                             {
                                 async Task mHandle()
                                 {
-                                    request = await server.OnPlayerSpawning((TPlayer)client, request);
+                                    var responseSpawn = await server.OnPlayerSpawning((TPlayer)client, request);
 
                                     //Respond back.
                                     using (var response = Common.Serialization.Stream.Get())
                                     {
                                         response.Write((byte)NetworkCommuncation.SpawnPlayer);
                                         response.Write(steamID);
-                                        request.Write(response);
-                                        response.Write(vehicleID);
+
+                                        if (responseSpawn != null)
+                                        {
+                                            response.Write(true);
+                                            request.Write(response);
+                                            response.Write(vehicleID);
+                                        }
+                                        else
+                                        {
+                                            response.Write(false);
+                                        }
+
                                         server.WriteToSocket(response);
                                     }
                                 }

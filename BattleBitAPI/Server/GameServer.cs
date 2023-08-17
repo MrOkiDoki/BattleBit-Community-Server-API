@@ -324,7 +324,7 @@ namespace BattleBitAPI.Server
         {
 
         }
-        public virtual async Task<OnPlayerSpawnArguments> OnPlayerSpawning(TPlayer player, OnPlayerSpawnArguments request)
+        public virtual async Task<OnPlayerSpawnArguments?> OnPlayerSpawning(TPlayer player, OnPlayerSpawnArguments request)
         {
             return request;
         }
@@ -542,7 +542,7 @@ namespace BattleBitAPI.Server
                 SpawnPosition = position,
                 LookDirection = lookDirection,
                 SpawnStand = stand,
-                SpawnProtection = spawnProtection
+                SpawnProtection = spawnProtection,
             };
 
             //Respond back.
