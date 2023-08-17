@@ -1,6 +1,7 @@
 ﻿using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
+using System.Linq.Expressions;
 using System.Net;
 using System.Numerics;
 using System.Threading.Channels;
@@ -11,61 +12,59 @@ class Program
     static void Main(string[] args)
     {
         var listener = new ServerListener<MyPlayer, MyGameServer>();
-        listener.OnGameServerConnecting += OnGameServerConnecting;
-        listener.OnValidateGameServerToken += OnValidateGameServerToken;
+        listener.OnCreatingGameServerInstance += OnCreatingGameServerInstance;
+        listener.OnCreatingPlayerInstance += OnCreatingPlayerInstance;
         listener.Start(29294);
 
         Thread.Sleep(-1);
     }
 
-    private static async Task<bool> OnValidateGameServerToken(IPAddress ip, ushort gameport, string sentToken)
+    private static MyPlayer OnCreatingPlayerInstance()
     {
-        return true;
-        await Console.Out.WriteLineAsync(ip + ":" + gameport + " sent " + sentToken);
-        return sentToken == "12345678910";
+        return new MyPlayer("asdasd");
     }
 
-    private static async Task<bool> OnGameServerConnecting(IPAddress arg)
+    private static MyGameServer OnCreatingGameServerInstance()
     {
-        await Console.Out.WriteLineAsync(arg.ToString() + " connecting");
-        return true;
+        return new MyGameServer("mysecretDBpass");
     }
-
 }
 class MyPlayer : Player<MyPlayer>
 {
+    private string mydb;
+    public MyPlayer(string mydb)
+    {
+        this.mydb = mydb;
+    }
+
     public override async Task OnSpawned()
     {
     }
 }
 class MyGameServer : GameServer<MyPlayer>
 {
+    private string myDbConnection;
+    public MyGameServer(string mySecretDBConnection)
+    {
+        this.myDbConnection = mySecretDBConnection;
+    }
+
     public override async Task OnConnected()
     {
         ForceStartGame();
         ServerSettings.PlayerCollision = true;
     }
-    public override async Task OnDisconnected()
-    {
-        await Console.Out.WriteLineAsync("Disconnected: " + this.TerminationReason);
-    }
-
     public override async Task OnTick()
     {
-
-        base.ServerSettings.PlayerCollision = true;
-        foreach (var item in AllPlayers)
-            item.Modifications.RespawnTime= 0f;
     }
-
     public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
     {
-        request.Wearings.Eye = "Eye Zombie 01";
-        request.Wearings.Face = "Face Zombie 01";
-        request.Wearings.Face = "Hair Zombie 01";
-        request.Wearings.Skin = "Zombie 01";
-        request.Wearings.Uniform = "ANY NU Uniform Zombie 01";
-        request.Wearings.Head = "ANV2 Universal Zombie Helmet 00 A Z";
+        request.Wearings.Eye = "Eye_Zombie_01";
+        request.Wearings.Face = "Face_Zombie_01";
+        request.Wearings.Face = "Hair_Zombie_01";
+        request.Wearings.Skin = "Zombie_01";
+        request.Wearings.Uniform = "ANY_NU_Uniform_Zombie_01";
+        request.Wearings.Head = "ANV2_Universal_Zombie_Helmet_00_A_Z";
         request.Wearings.Belt = "ANV2_Universal_All_Belt_Null";
         request.Wearings.Backbag = "ANV2_Universal_All_Backpack_Null";
         request.Wearings.Chest = "ANV2_Universal_All_Armor_Null";
@@ -73,10 +72,11 @@ class MyGameServer : GameServer<MyPlayer>
         return request;
     }
 
-
     public override async Task OnPlayerConnected(MyPlayer player)
     {
         await Console.Out.WriteLineAsync("Connected: " + player);
+        player.Modifications.CanSpectate = true;
+        player.Modifications.CanDeploy = false;
 
     }
     public override async Task OnPlayerSpawned(MyPlayer player)

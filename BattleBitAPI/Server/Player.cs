@@ -235,11 +235,9 @@ namespace BattleBitAPI
         }
 
         // ---- Static ----
-        public static TPlayer CreateInstance<TPlayer>(Player<TPlayer>.Internal @internal) where TPlayer : Player<TPlayer>
+        public static void SetInstance(TPlayer player, Player<TPlayer>.Internal @internal)
         {
-            TPlayer player = (TPlayer)Activator.CreateInstance(typeof(TPlayer));
             player.mInternal = @internal;
-            return player;
         }
 
         // ---- Overrides ----

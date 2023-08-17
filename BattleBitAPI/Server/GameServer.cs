@@ -731,11 +731,9 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Static ----
-        public static TGameServer CreateInstance<TGameServer>(Internal @internal) where TGameServer : GameServer<TPlayer>
+        public static void SetInstance(GameServer<TPlayer> server, Internal @internal)
         {
-            TGameServer gameServer = (TGameServer)Activator.CreateInstance(typeof(TGameServer));
-            gameServer.mInternal = @internal;
-            return gameServer;
+            server.mInternal = @internal;
         }
 
         // ---- Internal ----
