@@ -66,7 +66,7 @@ public class KillCommand : ApiCommand
     public KillCommand()
     {
         CommandString = "/kill";
-        HelpString = "/kill <name>|<steamid>";
+        HelpString = "Kill player by name or steamid";
         Aliases = new string[] { "/k" };
         AdminOnly = true;
     }
