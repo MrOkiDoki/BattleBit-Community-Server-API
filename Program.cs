@@ -21,7 +21,6 @@ public class MyPlayer : Player<MyPlayer>
     public bool IsAdmin = true;
     public int Kills;
     public int Deaths;
-    public List<MyPlayer> Players;
 }
 
 class MyGameServer : GameServer<MyPlayer>
@@ -29,9 +28,10 @@ class MyGameServer : GameServer<MyPlayer>
     private readonly List<ApiCommand> mApiCommands = new()
     {
         new KillCommand(),
+        new StartCommand()
     };
 
-    private CommandHandler handler = new CommandHandler();
+    private CommandHandler handler = new();
     
     public List<MyPlayer> Players;
 
@@ -57,21 +57,6 @@ class MyGameServer : GameServer<MyPlayer>
         ServerSettings.SpectatorEnabled = false;
     }
 
-    public override async Task OnGameStateChanged(GameState oldState, GameState newState)
-    {
-        await Console.Out.WriteLineAsync("State changed to -> " + newState);
-    }
-
-    public override async Task OnPlayerDied(MyPlayer player)
-    {
-        await Console.Out.WriteLineAsync("Died: " + player);
-    }
-
-    public override async Task OnAPlayerRevivedAnotherPlayer(MyPlayer from, MyPlayer to)
-    {
-        await Console.Out.WriteLineAsync(from + " revived " + to);
-    }
-
     public override async Task OnPlayerDisconnected(MyPlayer player)
     {
         await Console.Out.WriteLineAsync("Disconnected: " + player);
@@ -87,8 +72,8 @@ class MyGameServer : GameServer<MyPlayer>
             {
                 if (apiCommand.CommandString == cmd)
                 {
-                    var command = apiCommand.ChatCommand(player, Players, channel, msg); // stops here, async issue?
-                    await handler.handleCommand(player, Players, command);
+                    var command = apiCommand.ChatCommand(player, channel, msg);
+                    await handler.handleCommand(player, command);
                     return false;
                 }
             }

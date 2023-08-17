@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using BattleBitAPI;
 using CommunityServerAPI.Enums;
 
 namespace CommunityServerAPI;
@@ -8,7 +9,7 @@ public class Command
     public ActionType Action { get; set; }
     public ulong SteamId { get; set; }
     public string Executor { get; set; }
-    public string Target { get; set; }
+    public Player<MyPlayer> Target { get; set; }
     public ulong TargetSteamId { get; set; }
     public string Message { get; set; }
     public Vector3 Location { get; set; }
