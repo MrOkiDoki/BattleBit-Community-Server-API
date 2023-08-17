@@ -1,4 +1,5 @@
-﻿using BattleBitAPI.Common;
+﻿using System.Text;
+using BattleBitAPI.Common;
 using CommunityServerAPI.Enums;
 
 namespace CommunityServerAPI;
@@ -9,15 +10,23 @@ public class CommandHandler
     {
         switch (cmd.Action)
         {
+            case ActionType.Help:
+            {
+                player.Message("Available commands:");
+                var commands = MyGameServer.ApiCommands.Where(c => !c.AdminOnly || player.IsAdmin).ToList();
+                
+                StringBuilder messageBuilder = new StringBuilder();
+                foreach (var command in commands)
+                {
+                    messageBuilder.Append($"{command.CommandString} - {command.HelpString}\n");
+                }
+                string message = messageBuilder.ToString();
+                
+                player.Message(message);
+                break;
+            }
             case ActionType.Kill:
             {
-                var splits = cmd.Message.Split(" ");
-                if (splits.Length < 2)
-                {
-                    player.Message("Usage: /kill <name>|<steamid>");
-                    break;
-                }
-                
                 var target = cmd.Message.Split(" ")[1..].Aggregate((a, b) => a + " " + b);
                 var targetPlayer = player.GameServer.AllPlayers.ToList().FirstOrDefault(p => p.Name.ToLower().Contains(target.ToLower()) || p.SteamID.ToString().Contains(target));
                 

@@ -19,6 +19,26 @@ public abstract class ApiCommand
     }
 }
 
+public class HelpCommand : ApiCommand
+{
+    public HelpCommand()
+    {
+        CommandString = "/help";
+        HelpString = "Shows this help message";
+        Aliases = new string[] { "/h" };
+        AdminOnly = false;
+    }
+
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    {
+        return new Command()
+        {
+            Action = ActionType.Help,
+            Executor = player.Name,
+            Error = false,
+        };
+    }
+}
 public class KillCommand : ApiCommand
 {
     public KillCommand()

