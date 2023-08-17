@@ -28,6 +28,8 @@
         public const int MinServerNameLength = 5;
         public const int MaxServerNameLength = 400;
 
+        public const int MaxTokenSize = 512;
+
         public const int MinGamemodeNameLength = 2;
         public const int MaxGamemodeNameLength = 12;
 
