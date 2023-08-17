@@ -1,6 +1,7 @@
 ﻿using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
+using CommunityServerAPI;
 
 class Program
 {
@@ -15,20 +16,29 @@ class Program
     }
 }
 
-class MyPlayer : Player<MyPlayer>
+public class MyPlayer : Player<MyPlayer>
 {
+    public bool IsAdmin = true;
     public int Kills;
     public int Deaths;
-    public List<MyPlayer> players;
+    public List<MyPlayer> Players;
 }
 
 class MyGameServer : GameServer<MyPlayer>
 {
-    private List<MyPlayer> players;
+    private readonly List<ApiCommand> mApiCommands = new()
+    {
+        new KillCommand(),
+    };
+
+    private CommandHandler handler = new CommandHandler();
+    
+    public List<MyPlayer> Players;
 
     public override async Task OnConnected()
     {
         Console.WriteLine($"Gameserver connected! {this.GameIP}:{this.GamePort}");
+        Console.Write(mApiCommands.Count);
 
         ServerSettings.BleedingEnabled = false;
         ServerSettings.SpectatorEnabled = false;
@@ -67,158 +77,23 @@ class MyGameServer : GameServer<MyPlayer>
         await Console.Out.WriteLineAsync("Disconnected: " + player);
     }
 
-    public override async Task OnTick()
-    {
-        var top5 = players.OrderByDescending(x => x.Kills / x.Deaths).Take(5).ToList();
-        var topPlayersInfo = top5.Select((p, index) => $"{index + 1}. {p.Name} - {p.Kills / p.Deaths}");
-        var announcement = $"<align=\"center\">--- Top 5 Players ---\n{string.Join("\n", topPlayersInfo)}</align>";
-
-        AnnounceShort(announcement);
-    }
-
-    private MyPlayer FindPlayerByIdentifier(string identifier)
-    {
-        ulong.TryParse(identifier, out ulong steamid);
-        return players.FirstOrDefault(x => x.SteamID == steamid || x.Name == identifier);
-    }
-
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
     {
-        if (player.SteamID != 76561198395073327 || !msg.StartsWith("/")) return true;
-
-        var words = msg.Split(" ");
-
-        switch (words[0])
+        if (player.IsAdmin)
         {
-            case "/tp":
-                // /tp <steamid/name> <steamid/name> or /tp <steamid/name> (tp executor to target)
-                var tpTarget = FindPlayerByIdentifier(words[1]);
-                var tpDestination = FindPlayerByIdentifier(words.Length > 2 ? words[2] : player.Name);
-
-                if (tpTarget == null || tpDestination == null)
+            var splits = msg.Split(" ");
+            var cmd = splits[0].ToLower();
+            foreach(var apiCommand in mApiCommands)
+            {
+                if (apiCommand.CommandString == cmd)
                 {
-                    player.Message("Player not found!");
+                    var command = apiCommand.ChatCommand(player, Players, channel, msg); // stops here, async issue?
+                    await handler.handleCommand(player, Players, command);
                     return false;
                 }
-
-                tpTarget.Teleport(tpDestination.Position);
-                break;
-
-            case "/kill":
-                // /kill <steamid/name>
-                var killTarget = FindPlayerByIdentifier(words[1]);
-
-                if (killTarget == null)
-                {
-                    player.Message("Player not found!");
-                    return false;
-                }
-
-                killTarget.Kill();
-                break;
-
-            case "/heal":
-                // /heal <steamid/name> <amount>
-                var healTarget = FindPlayerByIdentifier(words[1]);
-
-                if (healTarget == null)
-                {
-                    player.Message("Player not found!");
-                    return false;
-                }
-
-                var healAmount = words.Length > 2 ? int.Parse(words[2]) : 100;
-                healTarget.Heal(healAmount);
-                break;
-
-            case "/kick":
-                // /kick <steamid/name> <reason>
-                var kickTarget = FindPlayerByIdentifier(words[1]);
-
-                if (kickTarget == null)
-                {
-                    player.Message("Player not found!");
-                    return false;
-                }
-
-                var kickReason = words.Length > 2 ? string.Join(" ", words.Skip(2)) : "No reason provided";
-
-                kickTarget.Kick(kickReason);
-                break;
-            default:
-                player.Message("Unknown command!");
-                break;
+            }
         }
 
-        return false;
-    }
-
-    public override async Task OnRoundStarted()
-    {
-        players = AllPlayers.ToList();
-
-        foreach (var player in players)
-        {
-            player.Kills = 0;
-            player.Deaths = 0;
-        }
-    }
-
-
-    public override async Task OnPlayerConnected(MyPlayer player)
-    {
-        player.Kills = 0;
-        player.Deaths = 0;
-    }
-
-    public override Task OnPlayerJoiningToServer(ulong steamID, PlayerJoiningArguments args)
-    {
-        var stats = new PlayerStats();
-
-        stats.Progress.Rank = 200;
-        stats.Progress.Prestige = 10;
-        stats.Progress.EXP = uint.MaxValue;
-        if (steamID == 76561198395073327)
-        {
-            stats.Roles = Roles.Admin;
-        }
-
-        return Task.FromResult(stats);
-    }
-
-    public override async Task OnAPlayerDownedAnotherPlayer(OnPlayerKillArguments<MyPlayer> args)
-    {
-        args.Victim.Kill();
-        args.Killer.Heal(100);
-        args.Killer.Kills++;
-        args.Victim.Deaths++;
-    }
-
-    public override async Task<bool> OnPlayerRequestingToChangeRole(MyPlayer player, GameRole role)
-    {
-        if (role == GameRole.Assault)
-            return true;
-
-        player.GameServer.AnnounceShort("You can only play as Assault!");
-        return false;
-    }
-
-    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
-    {
-        request.Loadout.PrimaryWeapon = default;
-        request.Loadout.SecondaryWeapon = default;
-        request.Loadout.LightGadget = null;
-        request.Loadout.HeavyGadget = Gadgets.AdvancedBinoculars;
-        request.Loadout.Throwable = null;
-        request.Loadout.FirstAid = null;
-        request.Loadout.PrimaryExtraMagazines = 5;
-        request.Loadout.SecondaryExtraMagazines = 5;
-
-        return request;
-    }
-
-    public override async Task OnPlayerSpawned(MyPlayer player)
-    {
-        player.SetGiveDamageMultiplier(0.25f);
+        return true;
     }
 }
