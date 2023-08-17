@@ -20,8 +20,9 @@ class Program
 
     private static async Task<bool> OnValidateGameServerToken(IPAddress ip, ushort gameport, string sentToken)
     {
-        await Console.Out.WriteLineAsync(ip + ":" + gameport + " sent " + sentToken);
         return true;
+        await Console.Out.WriteLineAsync(ip + ":" + gameport + " sent " + sentToken);
+        return sentToken == "12345678910";
     }
 
     private static async Task<bool> OnGameServerConnecting(IPAddress arg)
@@ -46,14 +47,30 @@ class MyGameServer : GameServer<MyPlayer>
     }
     public override async Task OnDisconnected()
     {
-        await Console.Out.WriteLineAsync("Disconnected: "+ this.TerminationReason);
+        await Console.Out.WriteLineAsync("Disconnected: " + this.TerminationReason);
     }
 
     public override async Task OnTick()
     {
+
         base.ServerSettings.PlayerCollision = true;
         foreach (var item in AllPlayers)
-            item.Modifications.CanSuicide = true;
+            item.Modifications.RespawnTime= 0f;
+    }
+
+    public override async Task<OnPlayerSpawnArguments> OnPlayerSpawning(MyPlayer player, OnPlayerSpawnArguments request)
+    {
+        request.Wearings.Eye = "Eye Zombie 01";
+        request.Wearings.Face = "Face Zombie 01";
+        request.Wearings.Face = "Hair Zombie 01";
+        request.Wearings.Skin = "Zombie 01";
+        request.Wearings.Uniform = "ANY NU Uniform Zombie 01";
+        request.Wearings.Head = "ANV2 Universal Zombie Helmet 00 A Z";
+        request.Wearings.Belt = "ANV2_Universal_All_Belt_Null";
+        request.Wearings.Backbag = "ANV2_Universal_All_Backpack_Null";
+        request.Wearings.Chest = "ANV2_Universal_All_Armor_Null";
+
+        return request;
     }
 
 
