@@ -39,6 +39,28 @@ public class HelpCommand : ApiCommand
         };
     }
 }
+
+public class StatsCommand : ApiCommand
+{
+    public StatsCommand()
+    {
+        CommandString = "/stats";
+        HelpString = "/stats";
+        Aliases = new string[] { "/s" };
+        AdminOnly = false;
+    }
+    
+    public override Command ChatCommand(MyPlayer player, ChatChannel channel, string msg)
+    {
+        return new Command()
+        {
+            Action = ActionType.Stats,
+            Executor = player.Name,
+            Error = false,
+        };
+    }
+}
+
 public class KillCommand : ApiCommand
 {
     public KillCommand()

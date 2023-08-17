@@ -3,6 +3,7 @@
 public enum ActionType
 {
     Heal,
+    Stats,
     Kill,
     Kick,
     Ban,

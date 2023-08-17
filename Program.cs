@@ -28,6 +28,7 @@ class MyGameServer : GameServer<MyPlayer>
     public static List<ApiCommand> ApiCommands = new()
     {
         new HelpCommand(),
+        new StatsCommand(),
         new KillCommand(),
         new StartCommand()
     };
@@ -58,6 +59,22 @@ class MyGameServer : GameServer<MyPlayer>
     public override async Task OnPlayerDisconnected(MyPlayer player)
     {
         await Console.Out.WriteLineAsync("Disconnected: " + player);
+    }
+    
+    public override async Task OnAPlayerDownedAnotherPlayer(OnPlayerKillArguments<MyPlayer> args)
+    {
+        if (args.Killer == args.Victim)
+        {
+            args.Victim.Kill();
+            args.Victim.Deaths++;
+        }
+        else
+        {
+            args.Victim.Kill();
+            args.Killer.SetHP(100);
+            args.Killer.Kills++;
+            args.Victim.Deaths++;
+        }
     }
 
     public override async Task<bool> OnPlayerTypedMessage(MyPlayer player, ChatChannel channel, string msg)
