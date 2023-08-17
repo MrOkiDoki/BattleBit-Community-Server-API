@@ -45,7 +45,7 @@ public class StatsCommand : ApiCommand
     public StatsCommand()
     {
         CommandString = "/stats";
-        HelpString = "/stats";
+        HelpString = "Display your stats";
         Aliases = new string[] { "/s" };
         AdminOnly = false;
     }
