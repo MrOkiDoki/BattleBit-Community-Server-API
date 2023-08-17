@@ -18,7 +18,7 @@ class Program
 
 public class MyPlayer : Player<MyPlayer>
 {
-    public bool IsAdmin = true;
+    public bool IsAdmin = false;
     public int Kills;
     public int Deaths;
 }
