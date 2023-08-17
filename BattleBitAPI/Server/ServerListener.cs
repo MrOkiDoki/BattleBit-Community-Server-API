@@ -1,12 +1,8 @@
-﻿using System.Diagnostics;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
 using System.Numerics;
-using System.Xml;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
-using BattleBitAPI.Common.Serialization;
 using BattleBitAPI.Networking;
 using CommunityServerAPI.BattleBitAPI;
 using BattleBitAPI.Server;
@@ -34,6 +30,22 @@ namespace BattleBitAPI.Server
         /// Returns: true if allow connection, false if deny the connection.
         /// </value>
         public Func<IPAddress, Task<bool>> OnGameServerConnecting { get; set; }
+
+        /// <summary>
+        /// Fired when server needs to validate token from incoming connection.<br/>
+        /// Default, any connection attempt will be accepted
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// IPAddress: IP of incoming connection <br/>
+        /// ushort: Game Port of the connection <br/>
+        /// string: Token of connection<br/>
+        /// </remarks>
+        /// 
+        /// <value>
+        /// Returns: true if allow connection, false if deny the connection.
+        /// </value>
+        public Func<IPAddress, ushort, string, Task<bool>> OnValidateGameServerToken { get; set; }
 
         /// <summary>
         /// Fired when a game server connects.
@@ -178,6 +190,24 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Incoming package wasn't hail.");
                         }
 
+                        //Read the server name
+                        string token;
+                        {
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, 2, source.Token))
+                                throw new Exception("Unable to read the Token Size");
+
+                            int stringSize = readStream.ReadUInt16();
+                            if (stringSize > Const.MaxTokenSize)
+                                throw new Exception("Invalid token size");
+
+                            readStream.Reset();
+                            if (!await networkStream.TryRead(readStream, stringSize, source.Token))
+                                throw new Exception("Unable to read the token");
+
+                            token = readStream.ReadString(stringSize);
+                        }
+
                         //Read port
                         int gamePort;
                         {
@@ -186,6 +216,12 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Unable to read the Port");
                             gamePort = readStream.ReadUInt16();
                         }
+
+                        if (OnValidateGameServerToken != null)
+                            allow = await OnValidateGameServerToken(ip, (ushort)gamePort, token);
+
+                        if (!allow)
+                            throw new Exception("Token was not valid!");
 
                         //Read is server protected
                         bool isPasswordProtected;
@@ -349,6 +385,7 @@ namespace BattleBitAPI.Server
                         server = this.mInstanceDatabase.GetServerInstance(hash, out bool isNew, out resources);
                         resources.Set(
                             this.mExecutePackage,
+                            this.mGetPlayerInternals,
                             client,
                             ip,
                             gamePort,
@@ -409,7 +446,7 @@ namespace BattleBitAPI.Server
                         //Round Settings
                         {
                             readStream.Reset();
-                            if (!await networkStream.TryRead(readStream, GameServer<TPlayer>.mRoundSettings.Size, source.Token))
+                            if (!await networkStream.TryRead(readStream, RoundSettings<TPlayer>.mRoundSettings.Size, source.Token))
                                 throw new Exception("Unable to read the round settings");
                             resources._RoundSettings.Read(readStream);
                         }
@@ -531,12 +568,25 @@ namespace BattleBitAPI.Server
                             playerInternal.CurrentLoadout = loadout;
                             playerInternal.CurrentWearings = wearings;
 
+                            //Modifications
+                            {
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, 4, source.Token))
+                                    throw new Exception("Unable to read the Modifications Size");
+                                int modificationSize = (int)readStream.ReadUInt32();
+
+                                readStream.Reset();
+                                if (!await networkStream.TryRead(readStream, modificationSize, source.Token))
+                                    throw new Exception("Unable to read the Modifications");
+                                playerInternal._Modifications.Read(readStream);
+                            }
+
+                            //Call new instance callback if needed.
                             if (isNewClient)
                             {
                                 if (this.OnCreatingPlayerInstance != null)
                                     this.OnCreatingPlayerInstance(player);
                             }
-
 
                             resources.AddPlayer(player);
                         }
@@ -676,6 +726,9 @@ namespace BattleBitAPI.Server
                                 playerInternal.Team = team;
                                 playerInternal.Squad = squad;
                                 playerInternal.Role = role;
+
+                                //Start from default.
+                                playerInternal._Modifications.Reset();
 
                                 if (isNewClient)
                                 {
@@ -1066,7 +1119,7 @@ namespace BattleBitAPI.Server
                     }
                 case NetworkCommuncation.NotifyNewRoundState:
                     {
-                        if (stream.CanRead(GameServer<TPlayer>.mRoundSettings.Size))
+                        if (stream.CanRead(RoundSettings<TPlayer>.mRoundSettings.Size))
                         {
                             var oldState = resources._RoundSettings.State;
                             resources._RoundSettings.Read(stream);
@@ -1185,6 +1238,12 @@ namespace BattleBitAPI.Server
                         break;
                     }
             }
+        }
+
+        // --- Private ---
+        private Player<TPlayer>.Internal mGetPlayerInternals(ulong steamID)
+        {
+            return mInstanceDatabase.GetPlayerInternals(steamID);
         }
 
         // --- Public ---

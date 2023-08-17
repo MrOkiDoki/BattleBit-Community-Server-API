@@ -101,6 +101,35 @@ namespace BattleBitAPI.Server
                 }
             }
 
+            //Gather all changes.
+            this.mInternal.mChangedModifications.Clear();
+            lock (this.mInternal.Players)
+            {
+                foreach (var steamid in this.mInternal.Players.Keys)
+                {
+                    var @internal = this.mInternal.mGetInternals(steamid);
+                    if (@internal._Modifications.IsDirtyFlag)
+                        this.mInternal.mChangedModifications.Enqueue((steamid, @internal._Modifications));
+                }
+            }
+
+            //Send all changes.
+            while (this.mInternal.mChangedModifications.Count > 0)
+            {
+                (ulong steamID, PlayerModifications<TPlayer>.mPlayerModifications modifications) item = this.mInternal.mChangedModifications.Dequeue();
+
+                item.modifications.IsDirtyFlag = false;
+
+                //Send new settings
+                using (var pck = Common.Serialization.Stream.Get())
+                {
+                    pck.Write((byte)NetworkCommuncation.SetPlayerModifications);
+                    pck.Write(item.steamID);
+                    item.modifications.Write(pck);
+                    WriteToSocket(pck);
+                }
+            }
+
             try
             {
                 //Are we still connected on socket level?
@@ -315,7 +344,7 @@ namespace BattleBitAPI.Server
         {
 
         }
-        public virtual async Task OnAPlayerRevivedAnotherPlayer(TPlayer from,TPlayer to)
+        public virtual async Task OnAPlayerRevivedAnotherPlayer(TPlayer from, TPlayer to)
         {
 
         }
@@ -555,46 +584,6 @@ namespace BattleBitAPI.Server
         {
             Heal(player.SteamID, heal);
         }
-        public void SetRunningSpeedMultiplier(ulong steamID, float value)
-        {
-            ExecuteCommand("setrunningspeed " + steamID + " " + value);
-        }
-        public void SetRunningSpeedMultiplier(Player<TPlayer> player, float value)
-        {
-            SetRunningSpeedMultiplier(player.SteamID, value);
-        }
-        public void SetReceiveDamageMultiplier(ulong steamID, float value)
-        {
-            ExecuteCommand("setreceivedamagemultiplier " + steamID + " " + value);
-        }
-        public void SetReceiveDamageMultiplier(Player<TPlayer> player, float value)
-        {
-            SetReceiveDamageMultiplier(player.SteamID, value);
-        }
-        public void SetGiveDamageMultiplier(ulong steamID, float value)
-        {
-            ExecuteCommand("setgivedamagemultiplier " + steamID + " " + value);
-        }
-        public void SetGiveDamageMultiplier(Player<TPlayer> player, float value)
-        {
-            SetGiveDamageMultiplier(player.SteamID, value);
-        }
-        public void SetJumpMultiplier(ulong steamID, float value)
-        {
-            ExecuteCommand("setjumpmultiplier " + steamID + " " + value);
-        }
-        public void SetJumpMultiplier(Player<TPlayer> player, float value)
-        {
-            SetJumpMultiplier(player.SteamID, value);
-        }
-        public void SetFallDamageMultiplier(ulong steamID, float value)
-        {
-            ExecuteCommand("setfalldamagemultiplier " + steamID + " " + value);
-        }
-        public void SetFallDamageMultiplier(Player<TPlayer> player, float value)
-        {
-            SetFallDamageMultiplier(player.SteamID, value);
-        }
 
         public void SetPrimaryWeapon(ulong steamID, WeaponItem item, int extraMagazines, bool clear = false)
         {
@@ -759,6 +748,7 @@ namespace BattleBitAPI.Server
             public int GamePort;
             public TcpClient Socket;
             public Func<GameServer<TPlayer>, Internal, Common.Serialization.Stream, Task> mExecutionFunc;
+            public Func<ulong, Player<TPlayer>.Internal> mGetInternals;
             public bool IsPasswordProtected;
             public string ServerName;
             public string Gamemode;
@@ -786,6 +776,7 @@ namespace BattleBitAPI.Server
             public long mLastPackageSent;
             public bool mWantsToCloseConnection;
             public StringBuilder mBuilder;
+            public Queue<(ulong steamID, PlayerModifications<TPlayer>.mPlayerModifications)> mChangedModifications;
 
             public Internal()
             {
@@ -816,17 +807,18 @@ namespace BattleBitAPI.Server
                 this.MapRotation = new MapRotation<TPlayer>(this);
                 this.GamemodeRotation = new GamemodeRotation<TPlayer>(this);
                 this.RoundSettings = new RoundSettings<TPlayer>(this);
+                this.mChangedModifications = new Queue<(ulong steamID, PlayerModifications<TPlayer>.mPlayerModifications)>(254);
             }
 
             // ---- Players In Room ---- 
             public Dictionary<ulong, Player<TPlayer>> Players = new Dictionary<ulong, Player<TPlayer>>(254);
 
             // ---- Room Settings ---- 
-            public mRoomSettings _RoomSettings = new mRoomSettings();
+            public ServerSettings<TPlayer>.mRoomSettings _RoomSettings = new ServerSettings<TPlayer>.mRoomSettings();
             public bool IsDirtyRoomSettings;
 
             // ---- Round Settings ---- 
-            public mRoundSettings _RoundSettings = new mRoundSettings();
+            public RoundSettings<TPlayer>.mRoundSettings _RoundSettings = new RoundSettings<TPlayer>.mRoundSettings();
             public bool IsDirtyRoundSettings;
 
             // ---- Map Rotation ---- 
@@ -838,7 +830,24 @@ namespace BattleBitAPI.Server
             public bool IsDirtyGamemodeRotation = false;
 
             // ---- Public Functions ---- 
-            public void Set(Func<GameServer<TPlayer>, Internal, Common.Serialization.Stream, Task> func, TcpClient socket, IPAddress iP, int port, bool isPasswordProtected, string serverName, string gamemode, string map, MapSize mapSize, MapDayNight dayNight, int currentPlayers, int inQueuePlayers, int maxPlayers, string loadingScreenText, string serverRulesText)
+            public void Set(
+                Func<GameServer<TPlayer>, Internal, Common.Serialization.Stream, Task> func,
+                Func<ulong, Player<TPlayer>.Internal> internalGetFunc,
+                TcpClient socket,
+                IPAddress iP,
+                int port,
+                bool isPasswordProtected,
+                string serverName,
+                string gamemode,
+                string map,
+                MapSize mapSize,
+                MapDayNight dayNight,
+                int currentPlayers,
+                int inQueuePlayers,
+                int maxPlayers,
+                string loadingScreenText,
+                string serverRulesText
+                )
             {
                 this.ServerHash = ((ulong)port << 32) | (ulong)iP.ToUInt();
                 this.IsConnected = true;
@@ -846,6 +855,7 @@ namespace BattleBitAPI.Server
                 this.GamePort = port;
                 this.Socket = socket;
                 this.mExecutionFunc = func;
+                this.mGetInternals = internalGetFunc;
                 this.IsPasswordProtected = isPasswordProtected;
                 this.ServerName = serverName;
                 this.Gamemode = gamemode;
@@ -884,6 +894,7 @@ namespace BattleBitAPI.Server
                 this.mLastPackageSent = Extentions.TickCount;
                 this.mWantsToCloseConnection = false;
                 this.mBuilder.Clear();
+                this.mChangedModifications.Clear();
             }
             public void AddPlayer(Player<TPlayer> player)
             {
@@ -902,118 +913,6 @@ namespace BattleBitAPI.Server
             {
                 lock (Players)
                     return Players.TryGetValue(steamID, out result);
-            }
-        }
-        public class mRoomSettings
-        {
-            public float DamageMultiplier = 1.0f;
-            public bool BleedingEnabled = true;
-            public bool StaminaEnabled = false;
-            public bool FriendlyFireEnabled = false;
-            public bool HideMapVotes = true;
-            public bool OnlyWinnerTeamCanVote = false;
-            public bool HitMarkersEnabled = true;
-            public bool PointLogEnabled = true;
-            public bool SpectatorEnabled = true;
-            public float CaptureFlagSpeedMultiplier = 1f;
-
-            public byte MedicLimitPerSquad = 8;
-            public byte EngineerLimitPerSquad = 8;
-            public byte SupportLimitPerSquad = 8;
-            public byte ReconLimitPerSquad = 8;
-
-            public void Write(Common.Serialization.Stream ser)
-            {
-                ser.Write(this.DamageMultiplier);
-                ser.Write(this.BleedingEnabled);
-                ser.Write(this.StaminaEnabled);
-                ser.Write(this.FriendlyFireEnabled);
-                ser.Write(this.HideMapVotes);
-                ser.Write(this.OnlyWinnerTeamCanVote);
-                ser.Write(this.HitMarkersEnabled);
-                ser.Write(this.PointLogEnabled);
-                ser.Write(this.SpectatorEnabled);
-                ser.Write(this.CaptureFlagSpeedMultiplier);
-
-                ser.Write(this.MedicLimitPerSquad);
-                ser.Write(this.EngineerLimitPerSquad);
-                ser.Write(this.SupportLimitPerSquad);
-                ser.Write(this.ReconLimitPerSquad);
-            }
-            public void Read(Common.Serialization.Stream ser)
-            {
-                this.DamageMultiplier = ser.ReadFloat();
-                this.BleedingEnabled = ser.ReadBool();
-                this.StaminaEnabled = ser.ReadBool();
-                this.FriendlyFireEnabled = ser.ReadBool();
-                this.HideMapVotes = ser.ReadBool();
-                this.OnlyWinnerTeamCanVote = ser.ReadBool();
-                this.HitMarkersEnabled = ser.ReadBool();
-                this.PointLogEnabled = ser.ReadBool();
-                this.SpectatorEnabled = ser.ReadBool();
-                this.CaptureFlagSpeedMultiplier = ser.ReadFloat();
-
-                this.MedicLimitPerSquad = ser.ReadInt8();
-                this.EngineerLimitPerSquad = ser.ReadInt8();
-                this.SupportLimitPerSquad = ser.ReadInt8();
-                this.ReconLimitPerSquad = ser.ReadInt8();
-            }
-            public void Reset()
-            {
-                this.DamageMultiplier = 1.0f;
-                this.BleedingEnabled = true;
-                this.StaminaEnabled = false;
-                this.FriendlyFireEnabled = false;
-                this.HideMapVotes = true;
-                this.OnlyWinnerTeamCanVote = false;
-                this.HitMarkersEnabled = true;
-                this.PointLogEnabled = true;
-                this.SpectatorEnabled = true;
-
-                this.MedicLimitPerSquad = 8;
-                this.EngineerLimitPerSquad = 8;
-                this.SupportLimitPerSquad = 8;
-                this.ReconLimitPerSquad = 8;
-            }
-        }
-        public class mRoundSettings
-        {
-            public const int Size = 1 + 8 + 8 + 8 + 4 + 4;
-
-            public GameState State = GameState.WaitingForPlayers;
-            public double TeamATickets = 0;
-            public double TeamBTickets = 0;
-            public double MaxTickets = 1;
-            public int PlayersToStart = 16;
-            public int SecondsLeft = 60;
-
-            public void Write(Common.Serialization.Stream ser)
-            {
-                ser.Write((byte)this.State);
-                ser.Write(this.TeamATickets);
-                ser.Write(this.TeamBTickets);
-                ser.Write(this.MaxTickets);
-                ser.Write(this.PlayersToStart);
-                ser.Write(this.SecondsLeft);
-            }
-            public void Read(Common.Serialization.Stream ser)
-            {
-                this.State = (GameState)ser.ReadInt8();
-                this.TeamATickets = ser.ReadDouble();
-                this.TeamBTickets = ser.ReadDouble();
-                this.MaxTickets = ser.ReadDouble();
-                this.PlayersToStart = ser.ReadInt32();
-                this.SecondsLeft = ser.ReadInt32();
-            }
-
-            public void Reset()
-            {
-                this.State = GameState.WaitingForPlayers;
-                this.TeamATickets = 0;
-                this.TeamBTickets = 0;
-                this.MaxTickets = 1;
-                this.PlayersToStart = 16;
-                this.SecondsLeft = 60;
             }
         }
     }

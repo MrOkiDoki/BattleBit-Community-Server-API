@@ -15,6 +15,7 @@
         SetNewRoundState = 15,
         SetPlayerWeapon = 16,
         SetPlayerGadget = 17,
+        SetPlayerModifications = 18,
 
         PlayerConnected = 50,
         PlayerDisconnected = 51,

@@ -1,4 +1,4 @@
-﻿using BattleBitAPI;
+using BattleBitAPI;
 using BattleBitAPI.Common;
 using BattleBitAPI.Server;
 using CommunityServerAPI;
@@ -13,6 +13,18 @@ class Program
         Console.WriteLine("API started!");
 
         Thread.Sleep(-1);
+    }
+
+    private static async Task<bool> OnValidateGameServerToken(IPAddress ip, ushort gameport, string sentToken)
+    {
+        await Console.Out.WriteLineAsync(ip + ":" + gameport + " sent " + sentToken);
+        return true;
+    }
+
+    private static async Task<bool> OnGameServerConnecting(IPAddress arg)
+    {
+        await Console.Out.WriteLineAsync(arg.ToString() + " connecting");
+        return true;
     }
 }
 

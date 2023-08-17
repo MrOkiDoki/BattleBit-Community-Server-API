@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Language English | [中文](/README-zhCN.md) | [한국어](/README_koKR.md)
+Language English | [中文](/README-zhCN.md) | [한국어](/README-koKR.md)
 
 This repository provides an API that can be used to handle events on your community server(s) and manipulate them.
 
@@ -26,8 +26,12 @@ The easiest way to get started with all of this, is to use `Program.cs` and add 
 
 This project can either be built by using [`dotnet build`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build) on the command-line or by using the run / build options inside your preferred IDE.
 
+Alternatively, you can use Docker to run it. An easy way to do this it to run `docker compose up`.
+
 ### Connecting to the gameserver(s)
 
 After writing and compiling this project. You will want to host it somewhere. This could be on the same server that the gameservers run on, or somewhere completely different. We do recommend to keep the latency to the gameserver minimal for smoother and faster communication. The same `ServerListener` can be used for *multiple* gameservers at the same time. You can specify the API server (address & port) in the launch options of the gameserver.
 
 The gameserver connects to the API with the launch argument `"-apiendpoint=<IP>:<port>"`, where `<port>` is the port that the listener listens on and the `<IP>` is the IP of the API server.
+
+The project is currently configured to have the API listen on port `29294`. If you want to change this, make sure to change it in the code (on your `listener.start(port)`). Port `29294` is also exposed in Docker and bound to the same port on the host in Docker Compose. This means that when using Docker, you will have to change the port in the `Dockerfile` and in `docker-compose.yml` (when using Compose) as well. See [EXPOSE in the Dockerfile reference](https://docs.docker.com/engine/reference/builder/#expose) and [networking in Compose](https://docs.docker.com/compose/networking/).

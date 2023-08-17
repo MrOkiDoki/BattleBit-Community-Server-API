@@ -49,7 +49,23 @@ namespace BattleBitAPI
         public bool InSquad => mInternal.Squad != Squads.NoSquad;
         public int PingMs => mInternal.PingMs;
 
-        public float HP => mInternal.HP;
+        public float HP
+        {
+            get => mInternal.HP;
+            set
+            {
+                if (mInternal.HP > 0)
+                {
+                    float v = value;
+                    if (v <= 0)
+                        v = 0.1f;
+                    else if (v > 100f)
+                        v = 100f;
+
+                    SetHP(v);
+                }
+            }
+        }
         public bool IsAlive => mInternal.HP >= 0f;
         public bool IsUp => mInternal.HP > 0f;
         public bool IsDown => mInternal.HP == 0f;
@@ -193,26 +209,6 @@ namespace BattleBitAPI
         {
             GameServer.Heal(this, hp);
         }
-        public void SetRunningSpeedMultiplier(float value)
-        {
-            GameServer.SetRunningSpeedMultiplier(this, value);
-        }
-        public void SetReceiveDamageMultiplier(float value)
-        {
-            GameServer.SetReceiveDamageMultiplier(this, value);
-        }
-        public void SetGiveDamageMultiplier(float value)
-        {
-            GameServer.SetGiveDamageMultiplier(this, value);
-        }
-        public void SetJumpMultiplier(float value)
-        {
-            GameServer.SetJumpMultiplier(this, value);
-        }
-        public void SetFallDamageMultiplier(float value)
-        {
-            GameServer.SetFallDamageMultiplier(this, value);
-        }
         public void SetPrimaryWeapon(WeaponItem item, int extraMagazines, bool clear = false)
         {
             GameServer.SetPrimaryWeapon(this, item, extraMagazines, clear);
@@ -275,13 +271,13 @@ namespace BattleBitAPI
             public PlayerLoadout CurrentLoadout;
             public PlayerWearings CurrentWearings;
 
-            public mPlayerModifications _Modifications;
+            public PlayerModifications<TPlayer>.mPlayerModifications _Modifications;
             public PlayerModifications<TPlayer> Modifications;
 
             public Internal()
             {
+                this._Modifications = new PlayerModifications<TPlayer>.mPlayerModifications();
                 this.Modifications = new PlayerModifications<TPlayer>(this);
-                this._Modifications = new mPlayerModifications();
             }
 
             public void OnDie()
@@ -296,68 +292,6 @@ namespace BattleBitAPI
                 IsBleeding = false;
                 CurrentLoadout = new PlayerLoadout();
                 CurrentWearings = new PlayerWearings();
-            }
-        }
-        public class mPlayerModifications
-        {
-            public float RunningSpeedMultiplier = 1f;
-            public float ReceiveDamageMultiplier = 1f;
-            public float GiveDamageMultiplier = 1f;
-            public float JumpHeightMultiplier = 1f;
-            public float FallDamageMultiplier = 1f;
-            public float ReloadSpeedMultiplier = 1f;
-            public bool CanUseNightVision = true;
-            public bool HasCollision = false;
-            public float DownTimeGiveUpTime = 60f;
-            public bool AirStrafe = true;
-            public bool CanSpawn = true;
-            public bool CanSpectate = true;
-            public bool IsTextChatMuted = false;
-            public bool IsVoiceChatMuted = false;
-            public float RespawnTime = 10f;
-            public bool CanRespawn = true;
-
-            public bool IsDirtyFlag = false;
-            public void Write(BattleBitAPI.Common.Serialization.Stream ser)
-            {
-                ser.Write(this.RunningSpeedMultiplier);
-                ser.Write(this.ReceiveDamageMultiplier);
-                ser.Write(this.GiveDamageMultiplier);
-                ser.Write(this.JumpHeightMultiplier);
-                ser.Write(this.FallDamageMultiplier);
-                ser.Write(this.ReloadSpeedMultiplier);
-                ser.Write(this.CanUseNightVision);
-                ser.Write(this.HasCollision);
-                ser.Write(this.DownTimeGiveUpTime);
-                ser.Write(this.AirStrafe);
-                ser.Write(this.CanSpawn);
-                ser.Write(this.CanSpectate);
-                ser.Write(this.IsTextChatMuted);
-                ser.Write(this.IsVoiceChatMuted);
-                ser.Write(this.RespawnTime);
-                ser.Write(this.CanRespawn);
-            }
-            public void Read(BattleBitAPI.Common.Serialization.Stream ser)
-            {
-                this.RunningSpeedMultiplier = ser.ReadFloat();
-                if (this.RunningSpeedMultiplier <= 0f)
-                    this.RunningSpeedMultiplier = 0.01f;
-
-                this.ReceiveDamageMultiplier = ser.ReadFloat();
-                this.GiveDamageMultiplier = ser.ReadFloat();
-                this.JumpHeightMultiplier = ser.ReadFloat();
-                this.FallDamageMultiplier = ser.ReadFloat();
-                this.ReloadSpeedMultiplier = ser.ReadFloat();
-                this.CanUseNightVision = ser.ReadBool();
-                this.HasCollision = ser.ReadBool();
-                this.DownTimeGiveUpTime = ser.ReadFloat();
-                this.AirStrafe = ser.ReadBool();
-                this.CanSpawn = ser.ReadBool();
-                this.CanSpectate = ser.ReadBool();
-                this.IsTextChatMuted = ser.ReadBool();
-                this.IsVoiceChatMuted = ser.ReadBool();
-                this.RespawnTime = ser.ReadFloat();
-                this.CanRespawn = ser.ReadBool();
             }
         }
     }
