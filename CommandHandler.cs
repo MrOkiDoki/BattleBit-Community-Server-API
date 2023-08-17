@@ -52,7 +52,7 @@ public class CommandHandler
             }
             case ActionType.Start:
             {
-                if (player.GameServer.RoundSettings.State != GameState.WaitingForPlayers)
+                if (player.GameServer.RoundSettings.State != GameState.WaitingForPlayers && player.GameServer.RoundSettings.State != GameState.CountingDown)
                 {
                     player.Message("Round already started!");
                     break;
