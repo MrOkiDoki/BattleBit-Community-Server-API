@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
@@ -190,12 +189,12 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Incoming package wasn't hail.");
                         }
 
-                        //Read the server name
+                        //Read the server token
                         string token;
                         {
                             readStream.Reset();
                             if (!await networkStream.TryRead(readStream, 2, source.Token))
-                                throw new Exception("Unable to read the Token Size");
+                                throw new Exception("Unable to read the token Size");
 
                             int stringSize = readStream.ReadUInt16();
                             if (stringSize > Const.MaxTokenSize)
@@ -339,7 +338,7 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Unable to read the Loading Screen Text Size");
 
                             int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinLoadingScreenTextLength || stringSize > Const.MaxLoadingScreenTextLength)
+                            if (stringSize > Const.MaxLoadingScreenTextLength)
                                 throw new Exception("Invalid server Loading Screen Text Size");
 
                             if (stringSize > 0)
@@ -364,7 +363,7 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Unable to read the Server Rules Text Size");
 
                             int stringSize = readStream.ReadUInt16();
-                            if (stringSize < Const.MinServerRulesTextLength || stringSize > Const.MaxServerRulesTextLength)
+                            if (stringSize > Const.MaxServerRulesTextLength)
                                 throw new Exception("Invalid server Server Rules Text Size");
 
                             if (stringSize > 0)
@@ -546,7 +545,7 @@ namespace BattleBitAPI.Server
                             {
                                 readStream.Reset();
                                 if (!await networkStream.TryRead(readStream, 4, source.Token))
-                                    throw new Exception("Unable to read the LoadoutSize");
+                                    throw new Exception("Unable to read the Loadout + Wearings size");
                                 int loadoutSize = (int)readStream.ReadUInt32();
 
                                 readStream.Reset();
