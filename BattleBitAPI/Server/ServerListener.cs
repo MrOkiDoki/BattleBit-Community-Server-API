@@ -81,7 +81,7 @@ namespace BattleBitAPI.Server
         /// <remarks>
         /// GameServer: Game server that has been just created.<br/>
         /// </remarks>
-        public Func<TGameServer> OnCreatingGameServerInstance { get; set; }
+        public Func<IPAddress, int, TGameServer> OnCreatingGameServerInstance { get; set; }
 
         /// <summary>
         /// Fired when a new instance of player instance created.
@@ -382,7 +382,7 @@ namespace BattleBitAPI.Server
                         }
 
                         var hash = ((ulong)gamePort << 32) | (ulong)ip.ToUInt();
-                        server = this.mInstanceDatabase.GetServerInstance(hash, out resources, this.OnCreatingGameServerInstance);
+                        server = this.mInstanceDatabase.GetServerInstance(hash, ip, gamePort, out resources, this.OnCreatingGameServerInstance);
                         resources.Set(
                             this.mExecutePackage,
                             this.mGetPlayerInternals,
@@ -1281,7 +1281,7 @@ namespace BattleBitAPI.Server
                 this.mPlayerInstances = new Dictionary<ulong, (TPlayer, Player<TPlayer>.Internal)>(1024 * 16);
             }
 
-            public TGameServer GetServerInstance(ulong hash, out GameServer<TPlayer>.Internal @internal, Func<TGameServer> createFunc)
+            public TGameServer GetServerInstance(ulong hash, IPAddress serverIp, int serverPort, out GameServer<TPlayer>.Internal @internal, Func<IPAddress, int, TGameServer> createFunc)
             {
                 lock (mGameServerInstances)
                 {
@@ -1295,7 +1295,7 @@ namespace BattleBitAPI.Server
                     GameServer<TPlayer> server;
 
                     if (createFunc != null)
-                        server = createFunc();
+                        server = createFunc(serverIp, serverPort);
                     else
                         server = Activator.CreateInstance<GameServer<TPlayer>>();
 
