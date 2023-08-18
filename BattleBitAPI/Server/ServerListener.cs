@@ -338,7 +338,7 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Unable to read the Loading Screen Text Size");
 
                             int stringSize = readStream.ReadUInt16();
-                            if (stringSize > Const.MaxLoadingScreenTextLength)
+                            if (stringSize < Const.MinLoadingScreenTextLength || stringSize > Const.MaxLoadingScreenTextLength)
                                 throw new Exception("Invalid server Loading Screen Text Size");
 
                             if (stringSize > 0)
@@ -363,7 +363,7 @@ namespace BattleBitAPI.Server
                                 throw new Exception("Unable to read the Server Rules Text Size");
 
                             int stringSize = readStream.ReadUInt16();
-                            if (stringSize > Const.MaxServerRulesTextLength)
+                            if (stringSize < Const.MinServerRulesTextLength || stringSize > Const.MaxServerRulesTextLength)
                                 throw new Exception("Invalid server Server Rules Text Size");
 
                             if (stringSize > 0)
