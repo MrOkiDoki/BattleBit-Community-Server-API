@@ -32,6 +32,14 @@ Alternatively, you can use Docker to run it. An easy way to do this it to run `d
 
 After writing and compiling this project. You will want to host it somewhere. This could be on the same server that the gameservers run on, or somewhere completely different. We do recommend to keep the latency to the gameserver minimal for smoother and faster communication. The same `ServerListener` can be used for *multiple* gameservers at the same time. You can specify the API server (address & port) in the launch options of the gameserver.
 
+#### Gameserver start arguments
+
 The gameserver connects to the API with the launch argument `"-apiendpoint=<IP>:<port>"`, where `<port>` is the port that the listener listens on and the `<IP>` is the IP of the API server.
+
+If `Api Token` verification is required in your Server API, you need to add `"-apiToken=<ApiToken>"` to the startup parameters of the gameserver(s). Should `<ApiToken>` the same as `Api Token` defined in Server API, gameserver(s) can communicate with Server API.
+
+When the gameserver is up, you can also directly modify the `Api Token` of the gameserver by entering `setapitoken <new token>` in its command line.
+
+#### Adjust API listening port
 
 The project is currently configured to have the API listen on port `29294`. If you want to change this, make sure to change it in the code (on your `listener.start(port)`). Port `29294` is also exposed in Docker and bound to the same port on the host in Docker Compose. This means that when using Docker, you will have to change the port in the `Dockerfile` and in `docker-compose.yml` (when using Compose) as well. See [EXPOSE in the Dockerfile reference](https://docs.docker.com/engine/reference/builder/#expose) and [networking in Compose](https://docs.docker.com/compose/networking/).
