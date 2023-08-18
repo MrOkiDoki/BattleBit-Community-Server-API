@@ -145,6 +145,10 @@ namespace BattleBitAPI
         {
             GameServer.Kick(this, reason);
         }
+        public void Ban()
+        {
+            GameServer.Ban(this);
+        }
         public void Kill()
         {
             GameServer.Kill(this);
