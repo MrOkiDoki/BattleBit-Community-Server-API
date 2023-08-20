@@ -25,6 +25,12 @@ namespace BattleBitAPI.Common.Extentions
 #endif
         }
 
+        public static void Replace<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key, TValue value)
+        {
+            dic.Remove(key);
+            dic.Add(key, value);
+        }
+
         public static void SafeClose(this TcpClient client)
         {
             try { client.Close(); } catch { }

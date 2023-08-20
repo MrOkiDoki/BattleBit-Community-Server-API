@@ -17,7 +17,6 @@ namespace BattleBitAPI.Server
         public IPAddress GameIP => mInternal.GameIP;
         public int GamePort => mInternal.GamePort;
 
-        public TcpClient Socket => mInternal.Socket;
         public bool IsPasswordProtected => mInternal.IsPasswordProtected;
         public string ServerName => mInternal.ServerName;
         public string Gamemode => mInternal.Gamemode;
@@ -29,6 +28,8 @@ namespace BattleBitAPI.Server
         public int MaxPlayerCount => mInternal.MaxPlayerCount;
         public string LoadingScreenText => mInternal.LoadingScreenText;
         public string ServerRulesText => mInternal.ServerRulesText;
+        public uint RoundIndex => mInternal.RoundIndex;
+        public long SessionID => mInternal.SessionID;
         public ServerSettings<TPlayer> ServerSettings => mInternal.ServerSettings;
         public MapRotation<TPlayer> MapRotation => mInternal.MapRotation;
         public GamemodeRotation<TPlayer> GamemodeRotation => mInternal.GamemodeRotation;
@@ -158,7 +159,7 @@ namespace BattleBitAPI.Server
             try
             {
                 //Are we still connected on socket level?
-                if (!Socket.Connected)
+                if (mInternal.Socket == null || !mInternal.Socket.Connected)
                 {
                     mClose("Connection was terminated.");
                     return;
@@ -171,10 +172,10 @@ namespace BattleBitAPI.Server
                     return;
                 }
 
-                var networkStream = Socket.GetStream();
+                var networkStream = mInternal.Socket.GetStream();
 
                 //Read network packages.
-                while (Socket.Available > 0)
+                while (mInternal.Socket.Available > 0)
                 {
                     this.mInternal.mLastPackageReceived = Extentions.TickCount;
 
@@ -406,10 +407,6 @@ namespace BattleBitAPI.Server
         {
 
         }
-        public virtual async Task OnReconnected()
-        {
-
-        }
         public virtual async Task OnDisconnected()
         {
 
@@ -501,6 +498,10 @@ namespace BattleBitAPI.Server
         {
 
         }
+        public virtual async Task OnSessionChanged(long oldSessionID, long newSessionID)
+        {
+
+        }
 
         // ---- Functions ----
         public void WriteToSocket(Common.Serialization.Stream pck)
@@ -553,9 +554,17 @@ namespace BattleBitAPI.Server
         {
             ExecuteCommand("endgame");
         }
-        public void SayToChat(string msg)
+        public void SayToAllChat(string msg)
         {
             ExecuteCommand("say " + msg);
+        }
+        public void SayToChat(string msg, ulong steamID)
+        {
+            ExecuteCommand("sayto " + steamID + " " + msg);
+        }
+        public void SayToChat(string msg, Player<TPlayer> player)
+        {
+            SayToChat(msg, player.SteamID);
         }
 
         public void StopServer()
@@ -897,7 +906,7 @@ namespace BattleBitAPI.Server
         }
 
         // ---- Static ----
-        public static void SetInstance(GameServer<TPlayer> server, Internal @internal)
+        internal static void SetInstance(GameServer<TPlayer> server, Internal @internal)
         {
             server.mInternal = @internal;
         }
@@ -908,6 +917,7 @@ namespace BattleBitAPI.Server
             // ---- Variables ---- 
             public ulong ServerHash;
             public bool IsConnected;
+            public bool HasActiveConnectionSession;
             public IPAddress GameIP;
             public int GamePort;
             public TcpClient Socket;
@@ -924,6 +934,8 @@ namespace BattleBitAPI.Server
             public int MaxPlayerCount;
             public string LoadingScreenText;
             public string ServerRulesText;
+            public uint RoundIndex;
+            public long SessionID;
             public ServerSettings<TPlayer> ServerSettings;
             public MapRotation<TPlayer> MapRotation;
             public GamemodeRotation<TPlayer> GamemodeRotation;
@@ -944,6 +956,7 @@ namespace BattleBitAPI.Server
             public long mLastPackageReceived;
             public long mLastPackageSent;
             public bool mWantsToCloseConnection;
+            public long mPreviousSessionID;
             public StringBuilder mBuilder;
             public Queue<(ulong steamID, PlayerModifications<TPlayer>.mPlayerModifications)> mChangedModifications;
 
@@ -1290,7 +1303,9 @@ namespace BattleBitAPI.Server
                 int inQueuePlayers,
                 int maxPlayers,
                 string loadingScreenText,
-                string serverRulesText
+                string serverRulesText,
+                uint roundIndex,
+                long sessionID
                 )
             {
                 this.ServerHash = ((ulong)port << 32) | (ulong)iP.ToUInt();
@@ -1311,6 +1326,8 @@ namespace BattleBitAPI.Server
                 this.MaxPlayerCount = maxPlayers;
                 this.LoadingScreenText = loadingScreenText;
                 this.ServerRulesText = serverRulesText;
+                this.RoundIndex = roundIndex;
+                this.SessionID = sessionID;
 
                 this.ServerSettings.Reset();
                 this._RoomSettings.Reset();
