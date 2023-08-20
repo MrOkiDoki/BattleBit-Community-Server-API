@@ -29,7 +29,7 @@ namespace BattleBitAPI.Server
 
         public override string ToString()
         {
-            return Team + " : " + Name;
+            return "Squad " + Name;
         }
 
         // ---- Internal ----
