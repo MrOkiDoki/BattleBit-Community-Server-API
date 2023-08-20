@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
@@ -9,7 +6,6 @@ using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
 using BattleBitAPI.Pooling;
-using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
 {

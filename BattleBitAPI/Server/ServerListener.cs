@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
-using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
 {
