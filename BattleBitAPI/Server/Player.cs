@@ -33,12 +33,12 @@ namespace BattleBitAPI
                     ChangeTeam(value);
             }
         }
-        public Squads Squad
+        public Squads SquadName
         {
-            get => mInternal.Squad;
+            get => mInternal.SquadName;
             set
             {
-                if (value == mInternal.Squad)
+                if (value == mInternal.SquadName)
                     return;
                 if (value == Squads.NoSquad)
                     KickFromSquad();
@@ -46,7 +46,25 @@ namespace BattleBitAPI
                     JoinSquad(value);
             }
         }
-        public bool InSquad => mInternal.Squad != Squads.NoSquad;
+        public Squad<TPlayer> Squad
+        {
+            get => GameServer.GetSquad(mInternal.Team, mInternal.SquadName);
+            set
+            {
+                if (value == Squad)
+                    return;
+
+                if (value == null)
+                    KickFromSquad();
+                else
+                {
+                    if(value.Team != this.Team)
+                        ChangeTeam(value.Team);
+                    JoinSquad(value.Name);
+                }
+            }
+        }
+        public bool InSquad => mInternal.SquadName != Squads.NoSquad;
         public int PingMs => mInternal.PingMs;
 
         public float HP
@@ -127,11 +145,11 @@ namespace BattleBitAPI
         {
 
         }
-        public virtual async Task OnJoinedSquad(Squads newSquad)
+        public virtual async Task OnJoinedSquad(Squad<TPlayer> newSquad)
         {
 
         }
-        public virtual async Task OnLeftSquad(Squads oldSquad)
+        public virtual async Task OnLeftSquad(Squad<TPlayer> oldSquad)
         {
 
         }
@@ -255,7 +273,7 @@ namespace BattleBitAPI
             public GameServer<TPlayer> GameServer;
             public GameRole Role;
             public Team Team;
-            public Squads Squad;
+            public Squads SquadName;
             public int PingMs = 999;
 
             public bool IsAlive;

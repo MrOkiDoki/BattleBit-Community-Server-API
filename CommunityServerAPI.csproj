@@ -1,11 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>BattleBitRemastered.CommunityAPI.Core</Title>
+    <Authors>SgtOkiDoki</Authors>
+    <Company>OkigamesLimited</Company>
+    <Product>BattleBit Remastered</Product>
+    <Description>API to customize game servers for BattleBit Remastered.
+</Description>
+    <Copyright>MIT</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/MrOkiDoki/BattleBit-Community-Server-API</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MrOkiDoki/BattleBit-Community-Server-API</RepositoryUrl>
+    <PackageTags>BattleBit</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

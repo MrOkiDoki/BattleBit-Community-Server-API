@@ -39,5 +39,6 @@
         GameTick = 69,
         OnPlayerGivenUp = 70,
         OnPlayerRevivedAnother = 71,
+        OnSquadPointsChanged = 72,
     }
 }
