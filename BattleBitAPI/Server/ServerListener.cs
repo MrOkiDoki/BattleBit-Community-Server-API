@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Data;
+using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Resources;
@@ -15,6 +16,7 @@ namespace BattleBitAPI.Server
         public bool IsListening { get; private set; }
         public bool IsDisposed { get; private set; }
         public int ListeningPort { get; private set; }
+        public LogLevel LogLevel { get; set; } = LogLevel.None;
 
         // --- Events --- 
         /// <summary>
@@ -85,6 +87,17 @@ namespace BattleBitAPI.Server
         /// </remarks>
         public Func<ulong, TPlayer> OnCreatingPlayerInstance { get; set; }
 
+        /// <summary>
+        /// Fired on log
+        /// </summary>
+        /// 
+        /// <remarks>
+        /// LogLevel: The level of log<br/>
+        /// string: The message<br/>
+        /// object: The object that will be carried on log<br/>
+        /// </remarks>
+        public Action<LogLevel, string, object?> OnLog { get; set; }
+
         // --- Private --- 
         private TcpListener mSocket;
         private Dictionary<ulong, (TGameServer server, GameServer<TPlayer>.Internal resources)> mActiveConnections;
@@ -115,6 +128,9 @@ namespace BattleBitAPI.Server
             this.ListeningPort = port;
             this.IsListening = true;
 
+            if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                OnLog(LogLevel.Sockets, $"Listening TCP connections on port " + port, null);
+
             mMainLoop();
         }
         public void Start(int port)
@@ -136,6 +152,9 @@ namespace BattleBitAPI.Server
             }
             catch { }
 
+            if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                OnLog(LogLevel.Sockets, $"Stopped listening TCP connection.", null);
+
             this.mSocket = null;
             this.ListeningPort = 0;
             this.IsListening = true;
@@ -154,6 +173,9 @@ namespace BattleBitAPI.Server
         {
             var ip = (client.Client.RemoteEndPoint as IPEndPoint).Address;
 
+            if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                OnLog(LogLevel.Sockets, $"Incoming TCP connection from {ip}", client);
+
             //Is this IP allowed?
             bool allow = true;
             if (OnGameServerConnecting != null)
@@ -162,6 +184,9 @@ namespace BattleBitAPI.Server
             //Close connection if it was not allowed.
             if (!allow)
             {
+                if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                    OnLog(LogLevel.Sockets, $"Incoming connection from {ip} was denied", client);
+
                 //Connection is not allowed from this IP.
                 client.SafeClose();
                 return;
@@ -234,7 +259,14 @@ namespace BattleBitAPI.Server
                     }
                 }
             }
-            catch { client.SafeClose(); return; }
+            catch (Exception e)
+            {
+                if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                    OnLog(LogLevel.Sockets, $"{ip} failed to connected because " + e.Message, client);
+
+                client.SafeClose();
+                return;
+            }
 
             var hash = ((ulong)gamePort << 32) | (ulong)ip.ToUInt();
             TGameServer server = null;
@@ -723,6 +755,9 @@ namespace BattleBitAPI.Server
                 }
                 catch { }
 
+                if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                    OnLog(LogLevel.Sockets, $"{ip} failed to connected because " + e.Message, client);
+
                 client.SafeClose();
                 return;
             }
@@ -730,6 +765,9 @@ namespace BattleBitAPI.Server
             //Set the buffer sizes.
             client.ReceiveBufferSize = Const.MaxNetworkPackageSize;
             client.SendBufferSize = Const.MaxNetworkPackageSize;
+
+            if (this.LogLevel.HasFlag(LogLevel.Sockets))
+                OnLog(LogLevel.Sockets, $"Incoming game server from {ip}:{gamePort} accepted.", client);
 
             //Join to main server loop.
             await mHandleGameServer(server, resources);
@@ -773,6 +811,9 @@ namespace BattleBitAPI.Server
                     }
                 }
 
+                if (this.LogLevel.HasFlag(LogLevel.GameServers))
+                    OnLog(LogLevel.GameServers, $"{server} has connected", server);
+
                 // ---- Ticking ---- 
                 using (server)
                 {
@@ -805,6 +846,9 @@ namespace BattleBitAPI.Server
                     if (this.OnGameServerDisconnected != null)
                         this.OnGameServerDisconnected(server);
                 }
+
+                if (this.LogLevel.HasFlag(LogLevel.GameServers))
+                    OnLog(LogLevel.GameServers, $"{server} has disconnected", server);
             }
             @internal.HasActiveConnectionSession = false;
         }
@@ -853,6 +897,9 @@ namespace BattleBitAPI.Server
                                     if (previousID != 0)
                                         player.OnSessionChanged(previousID, playerInternal.SessionID);
                                 }
+
+                                if (this.LogLevel.HasFlag(LogLevel.Players))
+                                    OnLog(LogLevel.Players, $"{player} has connected", player);
                             }
                         }
                         break;
@@ -896,6 +943,9 @@ namespace BattleBitAPI.Server
 
                                 player.OnDisconnected();
                                 server.OnPlayerDisconnected((TPlayer)player);
+
+                                if (this.LogLevel.HasFlag(LogLevel.Players))
+                                    OnLog(LogLevel.Players, $"{player} has disconnected", player);
                             }
                         }
                         break;
@@ -965,6 +1015,9 @@ namespace BattleBitAPI.Server
 
                                         victimClient.OnDowned();
                                         server.OnAPlayerDownedAnotherPlayer(args);
+
+                                        if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                            OnLog(LogLevel.KillsAndSpawns, $"{killer} downed {victim} in {(Vector3.Distance(killerPos, victimPos))} meters", null);
                                     }
                                 }
                             }
@@ -1023,13 +1076,19 @@ namespace BattleBitAPI.Server
                             ulong steamID = stream.ReadUInt64();
                             GameRole role = (GameRole)stream.ReadInt8();
 
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
                                 async Task mHandle()
                                 {
-                                    bool accepted = await server.OnPlayerRequestingToChangeRole((TPlayer)client, role);
+                                    if (this.LogLevel.HasFlag(LogLevel.Roles))
+                                        OnLog(LogLevel.Roles, $"{player} asking to change role to {role}", player);
+
+                                    bool accepted = await server.OnPlayerRequestingToChangeRole((TPlayer)player, role);
                                     if (accepted)
                                         server.SetRoleTo(steamID, role);
+
+                                    if (this.LogLevel.HasFlag(LogLevel.Roles))
+                                        OnLog(LogLevel.Roles, $"{player}'s request to change role to {role} was {(accepted ? "accepted" : "denied")}", player);
                                 }
 
                                 mHandle();
@@ -1044,13 +1103,16 @@ namespace BattleBitAPI.Server
                             ulong steamID = stream.ReadUInt64();
                             GameRole role = (GameRole)stream.ReadInt8();
 
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
                                 var @internal = mInstanceDatabase.GetPlayerInternals(steamID);
                                 @internal.Role = role;
 
-                                client.OnChangedRole(role);
-                                server.OnPlayerChangedRole((TPlayer)client, role);
+                                player.OnChangedRole(role);
+                                server.OnPlayerChangedRole((TPlayer)player, role);
+
+                                if (this.LogLevel.HasFlag(LogLevel.Roles))
+                                    OnLog(LogLevel.Roles, $"{player} changed role to {role}", player);
                             }
                         }
                         break;
@@ -1062,18 +1124,21 @@ namespace BattleBitAPI.Server
                             ulong steamID = stream.ReadUInt64();
                             Squads squad = (Squads)stream.ReadInt8();
 
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
                                 var @internal = mInstanceDatabase.GetPlayerInternals(steamID);
                                 @internal.SquadName = squad;
 
-                                var msquad = server.GetSquad(client.Team, squad);
+                                var msquad = server.GetSquad(player.Team, squad);
                                 var rsquad = resources.GetSquadInternal(msquad);
                                 lock (rsquad.Members)
-                                    rsquad.Members.Add((TPlayer)client);
+                                    rsquad.Members.Add((TPlayer)player);
 
-                                client.OnJoinedSquad(msquad);
-                                server.OnPlayerJoinedSquad((TPlayer)client, msquad);
+                                player.OnJoinedSquad(msquad);
+                                server.OnPlayerJoinedSquad((TPlayer)player, msquad);
+
+                                if (this.LogLevel.HasFlag(LogLevel.Squads))
+                                    OnLog(LogLevel.Squads, $"{player} has joined to {msquad}", msquad);
                             }
                         }
                         break;
@@ -1084,30 +1149,33 @@ namespace BattleBitAPI.Server
                         {
                             ulong steamID = stream.ReadUInt64();
 
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
                                 var @internal = mInstanceDatabase.GetPlayerInternals(steamID);
 
-                                var oldSquad = client.SquadName;
-                                var oldRole = client.Role;
+                                var oldSquad = player.SquadName;
+                                var oldRole = player.Role;
                                 @internal.SquadName = Squads.NoSquad;
                                 @internal.Role = GameRole.Assault;
 
-                                var msquad = server.GetSquad(client.Team, oldSquad);
+                                var msquad = server.GetSquad(player.Team, oldSquad);
                                 var rsquad = resources.GetSquadInternal(msquad);
 
                                 @internal.SquadName = Squads.NoSquad;
                                 lock (rsquad.Members)
-                                    rsquad.Members.Remove((TPlayer)client);
+                                    rsquad.Members.Remove((TPlayer)player);
 
-                                client.OnLeftSquad(msquad);
-                                server.OnPlayerLeftSquad((TPlayer)client, msquad);
+                                player.OnLeftSquad(msquad);
+                                server.OnPlayerLeftSquad((TPlayer)player, msquad);
 
                                 if (oldRole != GameRole.Assault)
                                 {
-                                    client.OnChangedRole(GameRole.Assault);
-                                    server.OnPlayerChangedRole((TPlayer)client, GameRole.Assault);
+                                    player.OnChangedRole(GameRole.Assault);
+                                    server.OnPlayerChangedRole((TPlayer)player, GameRole.Assault);
                                 }
+
+                                if (this.LogLevel.HasFlag(LogLevel.Squads))
+                                    OnLog(LogLevel.Squads, $"{player} has left the {msquad}", msquad);
                             }
                         }
                         break;
@@ -1141,11 +1209,14 @@ namespace BattleBitAPI.Server
                             request.Read(stream);
                             ushort vehicleID = stream.ReadUInt16();
 
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
                                 async Task mHandle()
                                 {
-                                    var responseSpawn = await server.OnPlayerSpawning((TPlayer)client, request);
+                                    if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                        OnLog(LogLevel.KillsAndSpawns, $"{player} asking to spawn at {request.SpawnPosition} ({request.RequestedPoint})", player);
+
+                                    var responseSpawn = await server.OnPlayerSpawning((TPlayer)player, request);
 
                                     //Respond back.
                                     using (var response = Common.Serialization.Stream.Get())
@@ -1166,6 +1237,15 @@ namespace BattleBitAPI.Server
 
                                         server.WriteToSocket(response);
                                     }
+
+                                    if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                    {
+                                        if (responseSpawn == null)
+                                            OnLog(LogLevel.KillsAndSpawns, $"{player}'s spawn request was denied", player);
+                                        else
+                                            OnLog(LogLevel.KillsAndSpawns, $"{player}'s spawn request was accepted at {responseSpawn.Value.SpawnPosition}", player);
+                                    }
+
                                 }
 
                                 mHandle();
@@ -1197,7 +1277,7 @@ namespace BattleBitAPI.Server
                         if (stream.CanRead(8 + 2))
                         {
                             ulong steamID = stream.ReadUInt64();
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
                                 var @internal = mInstanceDatabase.GetPlayerInternals(steamID);
 
@@ -1209,10 +1289,21 @@ namespace BattleBitAPI.Server
                                 wearings.Read(stream);
                                 @internal.CurrentWearings = wearings;
 
+                                Vector3 position = new Vector3()
+                                {
+                                    X = stream.ReadFloat(),
+                                    Y = stream.ReadFloat(),
+                                    Z = stream.ReadFloat(),
+                                };
+
+                                @internal.Position = position;
                                 @internal.IsAlive = true;
 
-                                client.OnSpawned();
-                                server.OnPlayerSpawned((TPlayer)client);
+                                player.OnSpawned();
+                                server.OnPlayerSpawned((TPlayer)player);
+
+                                if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                    OnLog(LogLevel.KillsAndSpawns, $"{player} has spawned at {player.Position}", player);
                             }
                         }
                         break;
@@ -1222,13 +1313,16 @@ namespace BattleBitAPI.Server
                         if (stream.CanRead(8))
                         {
                             ulong steamid = stream.ReadUInt64();
-                            if (resources.TryGetPlayer(steamid, out var client))
+                            if (resources.TryGetPlayer(steamid, out var player))
                             {
                                 var @internal = mInstanceDatabase.GetPlayerInternals(steamid);
                                 @internal.OnDie();
 
-                                client.OnDied();
-                                server.OnPlayerDied((TPlayer)client);
+                                player.OnDied();
+                                server.OnPlayerDied((TPlayer)player);
+
+                                if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                    OnLog(LogLevel.KillsAndSpawns, $"{player} has died", player);
                             }
                         }
                         break;
@@ -1339,19 +1433,38 @@ namespace BattleBitAPI.Server
                                 var @internal = mInstanceDatabase.GetPlayerInternals(steamID);
                                 if (@internal.IsAlive)
                                 {
+                                    float newHP = (com_healt * 0.5f) - 1f;
+
+                                    if (this.LogLevel.HasFlag(LogLevel.HealtChanges))
+                                    {
+                                        var player = resources.Players[steamID];
+                                        float dtHP = newHP - @internal.HP;
+                                        if (dtHP > 0)
+                                        {
+                                            //Heal
+                                            OnLog(LogLevel.HealtChanges, $"{player} was healed by {dtHP} HP (new HP is {newHP} HP)", player);
+                                        }
+                                        else if(dtHP < 0)
+                                        {
+                                            //Damage
+                                            OnLog(LogLevel.HealtChanges, $"{player} was damaged by {(-dtHP)} HP (new HP is {newHP} HP)", player);
+                                        }
+                                    }
+
                                     @internal.Position = new Vector3()
                                     {
                                         X = com_posX * decompressX,
                                         Y = com_posY * decompressY,
                                         Z = com_posZ * decompressZ,
                                     };
-                                    @internal.HP = (com_healt * 0.5f) - 1f;
+                                    @internal.HP = newHP;
                                     @internal.Standing = standing;
                                     @internal.Leaning = side;
                                     @internal.CurrentLoadoutIndex = loadoutIndex;
                                     @internal.InVehicle = inSeat;
                                     @internal.IsBleeding = isBleeding;
                                     @internal.PingMs = ping;
+
                                 }
                             }
                         }
@@ -1362,10 +1475,13 @@ namespace BattleBitAPI.Server
                         if (stream.CanRead(8))
                         {
                             ulong steamID = stream.ReadUInt64();
-                            if (resources.TryGetPlayer(steamID, out var client))
+                            if (resources.TryGetPlayer(steamID, out var player))
                             {
-                                client.OnGivenUp();
-                                server.OnPlayerGivenUp((TPlayer)client);
+                                player.OnGivenUp();
+                                server.OnPlayerGivenUp((TPlayer)player);
+
+                                if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                    OnLog(LogLevel.KillsAndSpawns, $"{player} has givenup", player);
                             }
                         }
                         break;
@@ -1384,6 +1500,9 @@ namespace BattleBitAPI.Server
                                 {
                                     fromClient.OnRevivedAnotherPlayer();
                                     server.OnAPlayerRevivedAnotherPlayer((TPlayer)fromClient, (TPlayer)toClient);
+
+                                    if (this.LogLevel.HasFlag(LogLevel.KillsAndSpawns))
+                                        OnLog(LogLevel.KillsAndSpawns, $"{fromClient} revived {toClient}", null);
                                 }
                             }
                         }
@@ -1405,6 +1524,9 @@ namespace BattleBitAPI.Server
                                 rsquad.SquadPoints = points;
                                 server.OnSquadPointsChanged(msquad, points);
                             }
+
+                            if (this.LogLevel.HasFlag(LogLevel.Squads))
+                                OnLog(LogLevel.Squads, $"{msquad} now has {points} points", msquad);
                         }
                         break;
                     }
@@ -1438,6 +1560,15 @@ namespace BattleBitAPI.Server
                                         item.Value.OnSessionChanged(previousID, @player_internal.SessionID);
                                 }
                             }
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.Log:
+                    {
+                        if (this.LogLevel.HasFlag(LogLevel.GameServerErrors))
+                        {
+                            if (stream.TryReadString(out var log))
+                                OnLog(LogLevel.GameServerErrors, log, server);
                         }
                         break;
                     }

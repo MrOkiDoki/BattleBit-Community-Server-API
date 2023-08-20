@@ -41,5 +41,6 @@
         OnPlayerRevivedAnother = 71,
         OnSquadPointsChanged = 72,
         NotifyNewRoundID = 73,
+        Log = 74,
     }
 }
