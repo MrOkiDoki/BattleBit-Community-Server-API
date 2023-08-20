@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
@@ -6,6 +8,7 @@ using System.Text;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
 using BattleBitAPI.Networking;
+using BattleBitAPI.Pooling;
 using CommunityServerAPI.BattleBitAPI;
 
 namespace BattleBitAPI.Server
@@ -36,6 +39,32 @@ namespace BattleBitAPI.Server
         public RoundSettings<TPlayer> RoundSettings => mInternal.RoundSettings;
         public string TerminationReason => mInternal.TerminationReason;
         public bool ReconnectFlag => mInternal.ReconnectFlag;
+        public IEnumerable<Squad<TPlayer>> TeamASquads
+        {
+            get
+            {
+                for (int i = 1; i < this.mInternal.TeamASquads.Length; i++)
+                    yield return this.mInternal.TeamASquads[i];
+            }
+        }
+        public IEnumerable<Squad<TPlayer>> TeamBSquads
+        {
+            get
+            {
+                for (int i = 1; i < this.mInternal.TeamBSquads.Length; i++)
+                    yield return this.mInternal.TeamBSquads[i];
+            }
+        }
+        public IEnumerable<Squad<TPlayer>> AllSquads
+        {
+            get
+            {
+                for (int i = 1; i < this.mInternal.TeamASquads.Length; i++)
+                    yield return this.mInternal.TeamASquads[i];
+                for (int i = 1; i < this.mInternal.TeamBSquads.Length; i++)
+                    yield return this.mInternal.TeamBSquads[i];
+            }
+        }
 
         // ---- Private Variables ---- 
         private Internal mInternal;
@@ -240,15 +269,123 @@ namespace BattleBitAPI.Server
         {
             get
             {
-                var list = new List<TPlayer>(this.mInternal.Players.Values.Count);
-                lock (this.mInternal.Players)
+                using (var list = this.mInternal.PlayerPool.Get())
                 {
-                    foreach (var item in this.mInternal.Players.Values)
-                        list.Add((TPlayer)item);
+                    //Get A copy of players to our list
+                    lock (this.mInternal.Players)
+                        list.ListItems.AddRange(this.mInternal.Players.Values);
+
+                    //Iterate our list.
+                    for (int i = 0; i < list.ListItems.Count; i++)
+                        yield return (TPlayer)list.ListItems[i];
                 }
-                return list;
             }
         }
+        public IEnumerable<TPlayer> AllTeamAPlayers
+        {
+            get
+            {
+                using (var list = this.mInternal.PlayerPool.Get())
+                {
+                    //Get A copy of players to our list
+                    lock (this.mInternal.Players)
+                        list.ListItems.AddRange(this.mInternal.Players.Values);
+
+                    //Iterate our list.
+                    for (int i = 0; i < list.ListItems.Count; i++)
+                    {
+                        var item = list.ListItems[i];
+                        if (item.Team == Team.TeamA)
+                            yield return (TPlayer)item;
+                    }
+                }
+            }
+        }
+        public IEnumerable<TPlayer> AllTeamBPlayers
+        {
+            get
+            {
+                using (var list = this.mInternal.PlayerPool.Get())
+                {
+                    //Get A copy of players to our list
+                    lock (this.mInternal.Players)
+                        list.ListItems.AddRange(this.mInternal.Players.Values);
+
+                    //Iterate our list.
+                    for (int i = 0; i < list.ListItems.Count; i++)
+                    {
+                        var item = list.ListItems[i];
+                        if (item.Team == Team.TeamB)
+                            yield return (TPlayer)item;
+                    }
+                }
+            }
+        }
+        public IEnumerable<TPlayer> PlayersOf(Team team)
+        {
+            using (var list = this.mInternal.PlayerPool.Get())
+            {
+                //Get A copy of players to our list
+                lock (this.mInternal.Players)
+                    list.ListItems.AddRange(this.mInternal.Players.Values);
+
+                //Iterate our list.
+                for (int i = 0; i < list.ListItems.Count; i++)
+                {
+                    var item = list.ListItems[i];
+                    if (item.Team == team)
+                        yield return (TPlayer)item;
+                }
+            }
+        }
+        public IEnumerable<TPlayer> SearchPlayerByName(string keyword)
+        {
+            keyword = keyword.ToLower().Replace(" ", "");
+
+            using (var list = this.mInternal.PlayerPool.Get())
+            {
+                //Get A copy of players to our list
+                lock (this.mInternal.Players)
+                    list.ListItems.AddRange(this.mInternal.Players.Values);
+
+                //Iterate our list.
+                for (int i = 0; i < list.ListItems.Count; i++)
+                {
+                    var item = list.ListItems[i];
+                    if (item.Name.ToLower().Replace(" ", "").Contains(keyword))
+                        yield return (TPlayer)item;
+                }
+            }
+        }
+        public IEnumerable<TPlayer> SearchPlayerByName(params string[] keywords)
+        {
+            for (int i = 0; i < keywords.Length; i++)
+                keywords[i] = keywords[i].ToLower().Replace(" ", "");
+
+            using (var list = this.mInternal.PlayerPool.Get())
+            {
+                //Get A copy of players to our list
+                lock (this.mInternal.Players)
+                    list.ListItems.AddRange(this.mInternal.Players.Values);
+
+                //Iterate our list.
+                for (int i = 0; i < list.ListItems.Count; i++)
+                {
+                    var item = list.ListItems[i];
+                    var lowerName = item.Name.ToLower().Replace(" ", "");
+
+                    for (int x = 0; x < keywords.Length; x++)
+                    {
+                        if (lowerName.Contains(keywords[x]))
+                        {
+                            yield return (TPlayer)item;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         public bool TryGetPlayer(ulong steamID, out TPlayer player)
         {
             lock (this.mInternal.Players)
@@ -312,15 +449,19 @@ namespace BattleBitAPI.Server
         {
 
         }
-        public virtual async Task OnPlayerJoinedSquad(TPlayer player, Squads squad)
+        public virtual async Task OnPlayerJoinedSquad(TPlayer player, Squad<TPlayer> squad)
         {
 
         }
-        public virtual async Task OnPlayerLeftSquad(TPlayer player, Squads squad)
+        public virtual async Task OnPlayerLeftSquad(TPlayer player, Squad<TPlayer> squad)
         {
 
         }
         public virtual async Task OnPlayerChangeTeam(TPlayer player, Team team)
+        {
+
+        }
+        public virtual async Task OnSquadPointsChanged(Squad<TPlayer> squad, int newPoints)
         {
 
         }
@@ -584,6 +725,10 @@ namespace BattleBitAPI.Server
         {
             Heal(player.SteamID, heal);
         }
+        public void SetSquadPointsOf(Team team, Squads squad, int points)
+        {
+            ExecuteCommand("setsquadpoints " + ((int)(team)) + " " + ((int)squad) + " " + points);
+        }
 
         public void SetPrimaryWeapon(ulong steamID, WeaponItem item, int extraMagazines, bool clear = false)
         {
@@ -694,6 +839,31 @@ namespace BattleBitAPI.Server
             SetThrowable(player.SteamID, tool, extra, clear);
         }
 
+        // ---- Squads ---- 
+        public IEnumerable<TPlayer> IterateMembersOf(Squad<TPlayer> squad)
+        {
+            using (var list = this.mInternal.PlayerPool.Get())
+            {
+                var rsquad = this.mInternal.GetSquadInternal(squad);
+
+                //Get A copy of players to our list
+                lock (rsquad.Members)
+                    list.ListItems.AddRange(rsquad.Members);
+
+                //Iterate our list.
+                for (int i = 0; i < list.ListItems.Count; i++)
+                    yield return (TPlayer)list.ListItems[i];
+            }
+        }
+        public Squad<TPlayer> GetSquad(Team team, Squads name)
+        {
+            if (team == Team.TeamA)
+                return this.mInternal.TeamASquads[(int)name];
+            if (team == Team.TeamB)
+                return this.mInternal.TeamBSquads[(int)name];
+            return null;
+        }
+
         // ---- Closing ----
         public void CloseConnection(string additionInfo = "")
         {
@@ -764,6 +934,11 @@ namespace BattleBitAPI.Server
             public RoundSettings<TPlayer> RoundSettings;
             public string TerminationReason;
             public bool ReconnectFlag;
+            public Squad<TPlayer>.Internal[] TeamASquadInternals;
+            public Squad<TPlayer>.Internal[] TeamBSquadInternals;
+            public Squad<TPlayer>[] TeamASquads;
+            public Squad<TPlayer>[] TeamBSquads;
+            public ItemPooling<Player<TPlayer>> PlayerPool;
 
             // ---- Private Variables ---- 
             public byte[] mKeepAliveBuffer;
@@ -776,7 +951,7 @@ namespace BattleBitAPI.Server
             public StringBuilder mBuilder;
             public Queue<(ulong steamID, PlayerModifications<TPlayer>.mPlayerModifications)> mChangedModifications;
 
-            public Internal()
+            public Internal(GameServer<TPlayer> server)
             {
                 this.TerminationReason = string.Empty;
                 this.mWriteStream = new Common.Serialization.Stream()
@@ -806,6 +981,281 @@ namespace BattleBitAPI.Server
                 this.GamemodeRotation = new GamemodeRotation<TPlayer>(this);
                 this.RoundSettings = new RoundSettings<TPlayer>(this);
                 this.mChangedModifications = new Queue<(ulong steamID, PlayerModifications<TPlayer>.mPlayerModifications)>(254);
+
+                this.TeamASquadInternals = new Squad<TPlayer>.Internal[]
+                {
+                    null,
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Alpha),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Bravo),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Charlie),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Delta ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Echo ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Foxtrot ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Golf ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Hotel ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.India),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Juliett ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Kilo ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Lima ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Mike ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.November),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Oscar ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Papa ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Quebec),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Romeo ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Sierra),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Tango ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Uniform ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Whiskey ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Xray ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Yankee ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Zulu ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Ash ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Baker ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Cast ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Diver),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Eagle),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Fisher),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.George),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Hanover),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Ice ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Jake),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.King),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Lash),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Mule),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Neptune ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Ostend),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Page ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Quail ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Raft ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Scout ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Tare ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Unit ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.William ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Xaintrie ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Yoke ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Zebra ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Ace ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Beer ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Cast2 ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Duff ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Edward ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Freddy),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Gustav),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Henry ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Ivar ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Jazz ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Key ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Lincoln ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Mary ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamA, Squads.Nora ),
+                };
+                this.TeamBSquadInternals = new Squad<TPlayer>.Internal[]
+                {
+                    null,
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Alpha),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Bravo),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Charlie),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Delta ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Echo ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Foxtrot ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Golf ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Hotel ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.India),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Juliett ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Kilo ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Lima ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Mike ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.November),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Oscar ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Papa ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Quebec),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Romeo ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Sierra),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Tango ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Uniform ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Whiskey ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Xray ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Yankee ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Zulu ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Ash ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Baker ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Cast ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Diver),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Eagle),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Fisher),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.George),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Hanover),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Ice ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Jake),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.King),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Lash),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Mule),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Neptune ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Ostend),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Page ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Quail ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Raft ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Scout ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Tare ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Unit ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.William ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Xaintrie ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Yoke ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Zebra ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Ace ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Beer ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Cast2 ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Duff ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Edward ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Freddy),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Gustav),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Henry ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Ivar ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Jazz ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Key ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Lincoln ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Mary ),
+                    new Squad<TPlayer>.Internal(server,Team.TeamB, Squads.Nora ),
+                };
+
+                this.TeamASquads = new Squad<TPlayer>[]
+                {
+                    null,
+                    new Squad<TPlayer>(this.TeamASquadInternals[01]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[02]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[03]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[04]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[05]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[06]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[07]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[08]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[09]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[10]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[11]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[12]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[13]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[14]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[15]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[16]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[17]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[18]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[19]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[20]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[21]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[22]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[23]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[24]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[25]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[26]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[27]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[28]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[29]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[30]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[31]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[32]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[33]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[34]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[35]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[36]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[37]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[38]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[39]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[40]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[41]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[42]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[43]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[44]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[45]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[46]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[47]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[48]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[49]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[50]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[51]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[52]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[53]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[54]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[55]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[56]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[57]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[58]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[59]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[60]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[61]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[62]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[63]),
+                    new Squad<TPlayer>(this.TeamASquadInternals[64]),
+                };
+                this.TeamBSquads = new Squad<TPlayer>[]
+                {
+                    null,
+                    new Squad<TPlayer>(this.TeamBSquadInternals[01]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[02]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[03]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[04]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[05]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[06]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[07]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[08]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[09]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[10]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[11]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[12]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[13]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[14]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[15]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[16]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[17]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[18]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[19]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[20]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[21]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[22]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[23]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[24]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[25]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[26]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[27]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[28]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[29]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[30]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[31]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[32]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[33]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[34]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[35]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[36]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[37]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[38]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[39]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[40]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[41]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[42]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[43]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[44]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[45]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[46]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[47]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[48]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[49]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[50]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[51]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[52]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[53]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[54]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[55]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[56]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[57]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[58]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[59]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[60]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[61]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[62]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[63]),
+                    new Squad<TPlayer>(this.TeamBSquadInternals[64]),
+                };
+                this.PlayerPool = new ItemPooling<Player<TPlayer>>(254);
             }
 
             // ---- Players In Room ---- 
@@ -894,6 +1344,7 @@ namespace BattleBitAPI.Server
                 this.mBuilder.Clear();
                 this.mChangedModifications.Clear();
             }
+
             public void AddPlayer(Player<TPlayer> player)
             {
                 lock (Players)
@@ -911,6 +1362,18 @@ namespace BattleBitAPI.Server
             {
                 lock (Players)
                     return Players.TryGetValue(steamID, out result);
+            }
+            public Squad<TPlayer>.Internal GetSquadInternal(Team team, Squads squad)
+            {
+                if (team == Team.TeamA)
+                    return this.TeamASquadInternals[(int)squad];
+                if (team == Team.TeamB)
+                    return this.TeamBSquadInternals[(int)squad];
+                return null;
+            }
+            public Squad<TPlayer>.Internal GetSquadInternal(Squad<TPlayer> squad)
+            {
+                return GetSquadInternal(squad.Team, squad.Name);
             }
         }
     }

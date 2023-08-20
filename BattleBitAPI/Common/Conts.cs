@@ -2,6 +2,8 @@
 {
     public static class Const
     {
+        public static string Version = "1.0.1v";
+
         // ---- Networking ---- 
         /// <summary>
         /// Maximum data size for a single package. 4MB is default.
