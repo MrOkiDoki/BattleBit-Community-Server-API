@@ -1,8 +1,8 @@
-# BattleBit Remastered 服务端 API
+﻿# BattleBit Remastered 服务端 API
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Language [English](/README.md) | 中文 | [한국어](/README-koKR.md)
+Language [English](/README.md) | 中文 | [한국어](/README-koKR.md) | [Español](/README-esES.md)
  
 BBR（像素战地）的服务端 API 在部署后可以提供`社区服`所需要的游戏服务端事件处理以及事件控制。
 
