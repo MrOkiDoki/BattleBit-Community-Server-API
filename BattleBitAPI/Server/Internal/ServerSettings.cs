@@ -1,4 +1,6 @@
-﻿namespace BattleBitAPI.Server
+﻿using System.Runtime.ConstrainedExecution;
+
+namespace BattleBitAPI.Server
 {
     public class ServerSettings<TPlayer> where TPlayer : Player<TPlayer>
     {
@@ -54,6 +56,29 @@
                 mResources.IsDirtyRoomSettings = true;
             }
         }
+        public bool CanVoteDay
+        {
+            get => mResources._RoomSettings.CanVoteDay;
+            set
+            {
+                if (mResources._RoomSettings.CanVoteDay == value)
+                    return;
+                mResources._RoomSettings.CanVoteDay = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+        public bool CanVoteNight
+        {
+            get => mResources._RoomSettings.CanVoteNight;
+            set
+            {
+                if (mResources._RoomSettings.CanVoteNight == value)
+                    return;
+                mResources._RoomSettings.CanVoteNight = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+
 
         // ---- Reset ---- 
         public void Reset()
@@ -69,10 +94,14 @@
             public bool HideMapVotes = true;
             public bool OnlyWinnerTeamCanVote = false;
             public bool PlayerCollision = false;
+
             public byte MedicLimitPerSquad = 8;
             public byte EngineerLimitPerSquad = 8;
             public byte SupportLimitPerSquad = 8;
             public byte ReconLimitPerSquad = 8;
+
+            public bool CanVoteDay = true;
+            public bool CanVoteNight = true;
 
             public void Write(Common.Serialization.Stream ser)
             {
@@ -86,6 +115,9 @@
                 ser.Write(this.EngineerLimitPerSquad);
                 ser.Write(this.SupportLimitPerSquad);
                 ser.Write(this.ReconLimitPerSquad);
+
+                ser.Write(this.CanVoteDay);
+                ser.Write(this.CanVoteNight);
             }
             public void Read(Common.Serialization.Stream ser)
             {
@@ -99,6 +131,9 @@
                 this.EngineerLimitPerSquad = ser.ReadInt8();
                 this.SupportLimitPerSquad = ser.ReadInt8();
                 this.ReconLimitPerSquad = ser.ReadInt8();
+
+                this.CanVoteDay = ser.ReadBool();
+                this.CanVoteNight = ser.ReadBool();
             }
             public void Reset()
             {
@@ -112,6 +147,9 @@
                 this.EngineerLimitPerSquad = 8;
                 this.SupportLimitPerSquad = 8;
                 this.ReconLimitPerSquad = 8;
+
+                this.CanVoteDay = true;
+                this.CanVoteNight = true;
             }
         }
     }

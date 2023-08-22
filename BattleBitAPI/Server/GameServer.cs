@@ -684,7 +684,6 @@ namespace BattleBitAPI.Server
             {
                 Loadout = loadout,
                 Wearings = wearings,
-                RequestedPoint = PlayerSpawningPosition.Null,
                 SpawnPosition = position,
                 LookDirection = lookDirection,
                 SpawnStand = stand,
