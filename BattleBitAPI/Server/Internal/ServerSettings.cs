@@ -32,6 +32,17 @@
                 mResources.IsDirtyRoomSettings = true;
             }
         }
+        public bool HideMapVotes
+        {
+            get => mResources._RoomSettings.HideMapVotes;
+            set
+            {
+                if (mResources._RoomSettings.HideMapVotes == value)
+                    return;
+                mResources._RoomSettings.HideMapVotes = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
         public bool OnlyWinnerTeamCanVote
         {
             get => mResources._RoomSettings.OnlyWinnerTeamCanVote;
@@ -51,6 +62,50 @@
                 if (mResources._RoomSettings.PlayerCollision == value)
                     return;
                 mResources._RoomSettings.PlayerCollision = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+        public byte MedicLimitPerSquad
+        {
+            get => mResources._RoomSettings.MedicLimitPerSquad;
+            set
+            {
+                if (mResources._RoomSettings.MedicLimitPerSquad == value)
+                    return;
+                mResources._RoomSettings.MedicLimitPerSquad = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+        public byte EngineerLimitPerSquad
+        {
+            get => mResources._RoomSettings.EngineerLimitPerSquad;
+            set
+            {
+                if (mResources._RoomSettings.EngineerLimitPerSquad == value)
+                    return;
+                mResources._RoomSettings.EngineerLimitPerSquad = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+        public byte SupportLimitPerSquad
+        {
+            get => mResources._RoomSettings.SupportLimitPerSquad;
+            set
+            {
+                if (mResources._RoomSettings.SupportLimitPerSquad == value)
+                    return;
+                mResources._RoomSettings.SupportLimitPerSquad = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+        public byte ReconLimitPerSquad
+        {
+            get => mResources._RoomSettings.ReconLimitPerSquad;
+            set
+            {
+                if (mResources._RoomSettings.ReconLimitPerSquad == value)
+                    return;
+                mResources._RoomSettings.ReconLimitPerSquad = value;
                 mResources.IsDirtyRoomSettings = true;
             }
         }
