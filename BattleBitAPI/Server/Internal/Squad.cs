@@ -20,11 +20,35 @@ namespace BattleBitAPI.Server
                 Server.SetSquadPointsOf(@internal.Team, @internal.Name, value);
             }
         }
+        public TPlayer Leader
+        {
+            get
+            {
+                if (this.@internal.SquadLeader != 0 && this.Server.TryGetPlayer(this.@internal.SquadLeader, out var captain))
+                    return captain;
+                return null;
+            }
+            set
+            {
+                if (value != null)
+                {
+                    if (!value.IsSquadLeader)
+                        value.PromoteToSquadLeader();
+                }
+            }
+        }
 
         private Internal @internal;
         public Squad(Internal @internal)
         {
             this.@internal = @internal;
+        }
+
+        public void DisbandSquad()
+        {
+            var leader = this.Leader;
+            if (leader != null)
+                leader.DisbandTheSquad();
         }
 
         public override string ToString()
@@ -40,6 +64,7 @@ namespace BattleBitAPI.Server
             public int SquadPoints;
             public GameServer<TPlayer> Server;
             public HashSet<TPlayer> Members;
+            public ulong SquadLeader;
 
             public Internal(GameServer<TPlayer> server, Team team, Squads squads)
             {
@@ -47,6 +72,7 @@ namespace BattleBitAPI.Server
                 this.Name = squads;
                 this.Server = server;
                 this.Members = new HashSet<TPlayer>(8);
+                this.SquadLeader = 0;
             }
 
             public void Reset()

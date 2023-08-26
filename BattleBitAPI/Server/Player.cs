@@ -67,6 +67,18 @@ namespace BattleBitAPI
         public bool InSquad => mInternal.SquadName != Squads.NoSquad;
         public int PingMs => mInternal.PingMs;
         public long CurrentSessionID => mInternal.SessionID;
+        public bool IsSquadLeader
+        {
+            get
+            {
+                if (this.SquadName != Squads.NoSquad)
+                {
+                    var squad = this.Squad;
+                    return squad.Leader == this;
+                }
+                return false;
+            }
+        }
         public bool IsConnected => mInternal.SessionID != 0;
 
         public float HP
@@ -148,6 +160,10 @@ namespace BattleBitAPI
 
         }
         public virtual async Task OnJoinedSquad(Squad<TPlayer> newSquad)
+        {
+
+        }
+        public virtual async Task OnPlayerPromotedToSquadLeader()
         {
 
         }

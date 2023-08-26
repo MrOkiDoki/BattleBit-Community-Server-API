@@ -1,4 +1,6 @@
-﻿namespace BattleBitAPI.Server
+﻿using BattleBitAPI.Common;
+
+namespace BattleBitAPI.Server
 {
     public class PlayerModifications<TPlayer> where TPlayer : Player<TPlayer>
     {
@@ -279,6 +281,39 @@
                 @internal._Modifications.IsDirtyFlag = true;
             }
         }
+        public bool IsExposedOnMap
+        {
+            get => @internal._Modifications.IsExposedOnMap;
+            set
+            {
+                if (@internal._Modifications.IsExposedOnMap == value)
+                    return;
+                @internal._Modifications.IsExposedOnMap = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
+        public SpawningRule SpawningRule
+        {
+            get => @internal._Modifications.SpawningRule;
+            set
+            {
+                if (@internal._Modifications.SpawningRule == value)
+                    return;
+                @internal._Modifications.SpawningRule = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
+        public VehicleType AllowedVehicles
+        {
+            get => @internal._Modifications.AllowedVehicles;
+            set
+            {
+                if (@internal._Modifications.AllowedVehicles == value)
+                    return;
+                @internal._Modifications.AllowedVehicles = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
 
         public void DisableBleeding()
         {
@@ -318,6 +353,9 @@
             public float CaptureFlagSpeedMultiplier = 1f;
             public bool PointLogHudEnabled = true;
             public bool KillFeed = false;
+            public bool IsExposedOnMap = false;
+            public SpawningRule SpawningRule;
+            public VehicleType AllowedVehicles;
 
             public bool IsDirtyFlag = false;
             public void Write(BattleBitAPI.Common.Serialization.Stream ser)
@@ -347,6 +385,9 @@
                 ser.Write(this.CaptureFlagSpeedMultiplier);
                 ser.Write(this.PointLogHudEnabled);
                 ser.Write(this.KillFeed);
+                ser.Write(this.IsExposedOnMap);
+                ser.Write((ulong)this.SpawningRule);
+                ser.Write((byte)this.AllowedVehicles);
             }
             public void Read(BattleBitAPI.Common.Serialization.Stream ser)
             {
@@ -378,6 +419,9 @@
                 this.CaptureFlagSpeedMultiplier = ser.ReadFloat();
                 this.PointLogHudEnabled = ser.ReadBool();
                 this.KillFeed = ser.ReadBool();
+                this.IsExposedOnMap = ser.ReadBool();
+                this.SpawningRule = (SpawningRule)ser.ReadUInt64();
+                this.AllowedVehicles = (VehicleType)ser.ReadInt8();
             }
             public void Reset()
             {
@@ -405,6 +449,8 @@
                 this.CaptureFlagSpeedMultiplier = 1f;
                 this.PointLogHudEnabled = true;
                 this.KillFeed = false;
+                this.SpawningRule = SpawningRule.All;
+                this.AllowedVehicles = VehicleType.All;
             }
         }
     }

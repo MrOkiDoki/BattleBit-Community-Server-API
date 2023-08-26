@@ -4,7 +4,7 @@ namespace BattleBitAPI.Common
 {
     public struct OnPlayerSpawnArguments
     {
-        public PlayerSpawningPosition RequestedPoint;
+        public PlayerSpawningPosition RequestedPoint { get; private set; }
         public PlayerLoadout Loadout;
         public PlayerWearings Wearings;
         public Vector3 SpawnPosition;

@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using BattleBitAPI.Common;
 using BattleBitAPI.Common.Extentions;
@@ -26,8 +27,6 @@ namespace BattleBitAPI.Server
         public int CurrentPlayerCount => mInternal.CurrentPlayerCount;
         public int InQueuePlayerCount => mInternal.InQueuePlayerCount;
         public int MaxPlayerCount => mInternal.MaxPlayerCount;
-        public string LoadingScreenText => mInternal.LoadingScreenText;
-        public string ServerRulesText => mInternal.ServerRulesText;
         public uint RoundIndex => mInternal.RoundIndex;
         public long SessionID => mInternal.SessionID;
         public ServerSettings<TPlayer> ServerSettings => mInternal.ServerSettings;
@@ -36,6 +35,24 @@ namespace BattleBitAPI.Server
         public RoundSettings<TPlayer> RoundSettings => mInternal.RoundSettings;
         public string TerminationReason => mInternal.TerminationReason;
         public bool ReconnectFlag => mInternal.ReconnectFlag;
+        public string LoadingScreenText
+        {
+            get => mInternal.LoadingScreenText;
+            set
+            {
+                mInternal.LoadingScreenText = value;
+                SetLoadingScreenText(value);
+            }
+        }
+        public string ServerRulesText
+        {
+            get => mInternal.ServerRulesText;
+            set
+            {
+                mInternal.ServerRulesText = value;
+                SetRulesScreenText(value);
+            }
+        }
         public IEnumerable<Squad<TPlayer>> TeamASquads
         {
             get
@@ -446,6 +463,10 @@ namespace BattleBitAPI.Server
         {
 
         }
+        public virtual async Task OnSquadLeaderChanged(Squad<TPlayer> squad, TPlayer newLeader)
+        {
+
+        }
         public virtual async Task OnPlayerLeftSquad(TPlayer player, Squad<TPlayer> squad)
         {
 
@@ -567,6 +588,14 @@ namespace BattleBitAPI.Server
             SayToChat(msg, player.SteamID);
         }
 
+        public void SetLoadingScreenText(string newText)
+        {
+            ExecuteCommand("setloadingscreentext " + newText);
+        }
+        public void SetRulesScreenText(string newText)
+        {
+            ExecuteCommand("setrulesscreentext " + newText);
+        }
         public void StopServer()
         {
             ExecuteCommand("stop");
@@ -684,7 +713,6 @@ namespace BattleBitAPI.Server
             {
                 Loadout = loadout,
                 Wearings = wearings,
-                RequestedPoint = PlayerSpawningPosition.Null,
                 SpawnPosition = position,
                 LookDirection = lookDirection,
                 SpawnStand = stand,
