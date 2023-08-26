@@ -1119,10 +1119,11 @@ namespace BattleBitAPI.Server
                     }
                 case NetworkCommuncation.OnPlayerJoinedASquad:
                     {
-                        if (stream.CanRead(8 + 1))
+                        if (stream.CanRead(8 + 1 + 1))
                         {
                             ulong steamID = stream.ReadUInt64();
                             Squads squad = (Squads)stream.ReadInt8();
+                            bool asCaptain = stream.ReadBool();
 
                             if (resources.TryGetPlayer(steamID, out var player))
                             {
@@ -1134,11 +1135,24 @@ namespace BattleBitAPI.Server
                                 lock (rsquad.Members)
                                     rsquad.Members.Add((TPlayer)player);
 
+                                //Assign as leader if needed.
+                                if (asCaptain)
+                                    rsquad.SquadLeader = steamID;
+
                                 player.OnJoinedSquad(msquad);
                                 server.OnPlayerJoinedSquad((TPlayer)player, msquad);
 
                                 if (this.LogLevel.HasFlag(LogLevel.Squads))
                                     OnLog(LogLevel.Squads, $"{player} has joined to {msquad}", msquad);
+
+                                if (asCaptain)
+                                {
+                                    player.OnPlayerPromotedToSquadLeader();
+                                    server.OnSquadLeaderChanged(msquad, (TPlayer)player);
+
+                                    if (this.LogLevel.HasFlag(LogLevel.Squads))
+                                        OnLog(LogLevel.Squads, $"{player} has promoted to squad leader", player);
+                                }
                             }
                         }
                         break;
@@ -1444,7 +1458,7 @@ namespace BattleBitAPI.Server
                                             //Heal
                                             OnLog(LogLevel.HealtChanges, $"{player} was healed by {dtHP} HP (new HP is {newHP} HP)", player);
                                         }
-                                        else if(dtHP < 0)
+                                        else if (dtHP < 0)
                                         {
                                             //Damage
                                             OnLog(LogLevel.HealtChanges, $"{player} was damaged by {(-dtHP)} HP (new HP is {newHP} HP)", player);
@@ -1569,6 +1583,29 @@ namespace BattleBitAPI.Server
                         {
                             if (stream.TryReadString(out var log))
                                 OnLog(LogLevel.GameServerErrors, log, server);
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.OnSquadLeaderChanged:
+                    {
+                        if (stream.CanRead(8 + 1))
+                        {
+                            ulong steamID = stream.ReadUInt64();
+                            byte squadIndex = stream.ReadInt8();
+
+                            if (resources.TryGetPlayer(steamID, out var player))
+                            {
+                                var msquad = server.GetSquad(player.Team, (Squads)squadIndex);
+                                var rsquad = resources.GetSquadInternal(msquad);
+
+                                rsquad.SquadLeader = steamID;
+
+                                player.OnPlayerPromotedToSquadLeader();
+                                server.OnSquadLeaderChanged(msquad, (TPlayer)player);
+
+                                if (this.LogLevel.HasFlag(LogLevel.Squads))
+                                    OnLog(LogLevel.Squads, $"{player} has promoted to squad leader", player);
+                            }
                         }
                         break;
                     }

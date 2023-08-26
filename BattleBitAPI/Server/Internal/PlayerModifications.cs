@@ -303,6 +303,17 @@ namespace BattleBitAPI.Server
                 @internal._Modifications.IsDirtyFlag = true;
             }
         }
+        public VehicleType AllowedVehicles
+        {
+            get => @internal._Modifications.AllowedVehicles;
+            set
+            {
+                if (@internal._Modifications.AllowedVehicles == value)
+                    return;
+                @internal._Modifications.AllowedVehicles = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
 
         public void DisableBleeding()
         {
@@ -344,6 +355,7 @@ namespace BattleBitAPI.Server
             public bool KillFeed = false;
             public bool IsExposedOnMap = false;
             public SpawningRule SpawningRule;
+            public VehicleType AllowedVehicles;
 
             public bool IsDirtyFlag = false;
             public void Write(BattleBitAPI.Common.Serialization.Stream ser)
@@ -375,6 +387,7 @@ namespace BattleBitAPI.Server
                 ser.Write(this.KillFeed);
                 ser.Write(this.IsExposedOnMap);
                 ser.Write((ulong)this.SpawningRule);
+                ser.Write((byte)this.AllowedVehicles);
             }
             public void Read(BattleBitAPI.Common.Serialization.Stream ser)
             {
@@ -408,6 +421,7 @@ namespace BattleBitAPI.Server
                 this.KillFeed = ser.ReadBool();
                 this.IsExposedOnMap = ser.ReadBool();
                 this.SpawningRule = (SpawningRule)ser.ReadUInt64();
+                this.AllowedVehicles = (VehicleType)ser.ReadInt8();
             }
             public void Reset()
             {
@@ -436,6 +450,7 @@ namespace BattleBitAPI.Server
                 this.PointLogHudEnabled = true;
                 this.KillFeed = false;
                 this.SpawningRule = SpawningRule.All;
+                this.AllowedVehicles = VehicleType.All;
             }
         }
     }

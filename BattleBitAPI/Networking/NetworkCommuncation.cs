@@ -42,5 +42,6 @@
         OnSquadPointsChanged = 72,
         NotifyNewRoundID = 73,
         Log = 74,
+        OnSquadLeaderChanged = 75,
     }
 }
