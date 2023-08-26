@@ -180,6 +180,18 @@ namespace BattleBitAPI.Server
             }
         }
 
+        public bool UnlockAllAttachments
+        {
+            get => mResources._RoomSettings.UnlockAllAttachments;
+            set
+            {
+                if (mResources._RoomSettings.UnlockAllAttachments == value)
+                    return;
+                mResources._RoomSettings.UnlockAllAttachments = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
+
         // ---- Reset ---- 
         public void Reset()
         {
@@ -209,6 +221,8 @@ namespace BattleBitAPI.Server
             public float APCSpawnDelayMultipler = 1.0f;
             public float HelicopterSpawnDelayMultipler = 1.0f;
 
+            public bool UnlockAllAttachments = false;
+
             public void Write(Common.Serialization.Stream ser)
             {
                 ser.Write(this.DamageMultiplier);
@@ -230,6 +244,8 @@ namespace BattleBitAPI.Server
                 ser.Write(this.SeaVehicleSpawnDelayMultipler);
                 ser.Write(this.APCSpawnDelayMultipler);
                 ser.Write(this.HelicopterSpawnDelayMultipler);
+
+                ser.Write(this.UnlockAllAttachments);
             }
             public void Read(Common.Serialization.Stream ser)
             {
@@ -252,6 +268,8 @@ namespace BattleBitAPI.Server
                 this.SeaVehicleSpawnDelayMultipler = ser.ReadFloat();
                 this.APCSpawnDelayMultipler = ser.ReadFloat();
                 this.HelicopterSpawnDelayMultipler = ser.ReadFloat();
+
+                this.UnlockAllAttachments = ser.ReadBool();
             }
             public void Reset()
             {
@@ -274,6 +292,8 @@ namespace BattleBitAPI.Server
                 this.SeaVehicleSpawnDelayMultipler = 1.0f;
                 this.APCSpawnDelayMultipler = 1.0f;
                 this.HelicopterSpawnDelayMultipler = 1.0f;
+
+                this.UnlockAllAttachments = false;
             }
         }
     }
