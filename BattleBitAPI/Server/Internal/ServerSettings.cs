@@ -56,6 +56,17 @@ namespace BattleBitAPI.Server
                 mResources.IsDirtyRoomSettings = true;
             }
         }
+        public bool HideMapVotes
+        {
+            get => mResources._RoomSettings.HideMapVotes;
+            set
+            {
+                if (mResources._RoomSettings.HideMapVotes == value)
+                    return;
+                mResources._RoomSettings.HideMapVotes = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
         public bool CanVoteDay
         {
             get => mResources._RoomSettings.CanVoteDay;

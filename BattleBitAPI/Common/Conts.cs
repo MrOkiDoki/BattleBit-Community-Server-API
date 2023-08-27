@@ -33,10 +33,10 @@
         public const int MaxTokenSize = 512;
 
         public const int MinGamemodeNameLength = 2;
-        public const int MaxGamemodeNameLength = 12;
+        public const int MaxGamemodeNameLength = 64;
 
         public const int MinMapNameLength = 2;
-        public const int MaxMapNameLength = 36;
+        public const int MaxMapNameLength = 64;
 
         public const int MinLoadingScreenTextLength = 0;
         public const int MaxLoadingScreenTextLength = 1024 * 8;
