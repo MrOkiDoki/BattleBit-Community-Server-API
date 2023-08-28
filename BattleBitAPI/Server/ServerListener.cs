@@ -486,10 +486,6 @@ namespace BattleBitAPI.Server
                             sessionID = readStream.ReadInt64();
                         }
 
-
-
-
-
                         server = this.mInstanceDatabase.GetServerInstance(hash, out resources, this.OnCreatingGameServerInstance, ip, (ushort)gamePort);
                         resources.Set(
                             this.mExecutePackage,
@@ -859,6 +855,34 @@ namespace BattleBitAPI.Server
             var communcation = (NetworkCommuncation)stream.ReadInt8();
             switch (communcation)
             {
+                case NetworkCommuncation.UpdateNewGameData:
+                    {
+                        if (stream.CanRead(10))
+                        {
+                            resources.CurrentPlayerCount = stream.ReadInt8();
+                            resources.InQueuePlayerCount = stream.ReadInt8();
+                            resources.MaxPlayerCount = stream.ReadInt8();
+                            resources.MaxPlayerCount = stream.ReadInt8();
+                            stream.TryReadString(out resources.Gamemode);
+                            resources.MapSize = (MapSize)stream.ReadInt8();
+                            stream.TryReadString(out resources.Map);
+                            byte gameType = stream.ReadInt8();
+                            resources.DayNight = (MapDayNight)stream.ReadInt8();
+                        }
+                        break;
+                    }
+                case NetworkCommuncation.UpdateConnectedPlayers:
+                    {
+                        if (stream.CanRead(4))
+                        {
+                            resources.CurrentPlayerCount = stream.ReadInt8();
+                            resources.InQueuePlayerCount = stream.ReadInt8();
+                            resources.MaxPlayerCount = stream.ReadInt8();
+                            resources.MaxPlayerCount = stream.ReadInt8();
+                        }
+                        break;
+                    }
+
                 case NetworkCommuncation.PlayerConnected:
                     {
                         if (stream.CanRead(8 + 2 + 4 + (1 + 1 + 1)))
