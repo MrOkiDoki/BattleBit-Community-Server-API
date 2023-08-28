@@ -1357,6 +1357,8 @@ namespace BattleBitAPI.Server
                 this.RoundIndex = roundIndex;
                 this.SessionID = sessionID;
 
+                this.Players.Clear();
+
                 this.ServerSettings.Reset();
                 this._RoomSettings.Reset();
                 this.IsDirtyRoomSettings = false;

@@ -43,5 +43,7 @@
         NotifyNewRoundID = 73,
         Log = 74,
         OnSquadLeaderChanged = 75,
+        UpdateNewGameData = 76,
+        UpdateConnectedPlayers = 77,
     }
 }
