@@ -249,7 +249,7 @@ namespace BattleBitAPI
         }
         public void Teleport(Vector3 target)
         {
-
+            GameServer.Teleport(this, target);
         }
         public void SpawnPlayer(PlayerLoadout loadout, PlayerWearings wearings, Vector3 position, Vector3 lookDirection, PlayerStand stand, float spawnProtection)
         {

@@ -1444,11 +1444,15 @@ namespace BattleBitAPI.Server
                     }
                 case NetworkCommuncation.GameTick:
                     {
-                        if (stream.CanRead(4 + 4 + 4))
+                        if (stream.CanRead(12 + 12 + 1))
                         {
                             float decompressX = stream.ReadFloat();
                             float decompressY = stream.ReadFloat();
                             float decompressZ = stream.ReadFloat();
+
+                            float offsetX = stream.ReadFloat();
+                            float offsetY = stream.ReadFloat();
+                            float offsetZ = stream.ReadFloat();
 
                             int playerCount = stream.ReadInt8();
                             while (playerCount > 0)
@@ -1491,9 +1495,9 @@ namespace BattleBitAPI.Server
 
                                     @internal.Position = new Vector3()
                                     {
-                                        X = com_posX * decompressX,
-                                        Y = com_posY * decompressY,
-                                        Z = com_posZ * decompressZ,
+                                        X = (com_posX * decompressX) - offsetX,
+                                        Y = (com_posY * decompressY) - offsetY,
+                                        Z = (com_posZ * decompressZ) - offsetZ,
                                     };
                                     @internal.HP = newHP;
                                     @internal.Standing = standing;
