@@ -2,7 +2,7 @@
 {
     public static class Const
     {
-        public static string Version = "1.0.4v";
+        public static string Version = "1.0.5v";
 
         // ---- Networking ---- 
         /// <summary>

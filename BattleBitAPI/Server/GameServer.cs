@@ -675,6 +675,14 @@ namespace BattleBitAPI.Server
         {
             PromoteSquadLeader(player.SteamID);
         }
+        public void Teleport(ulong steamID, Vector3 position)
+        {
+            ExecuteCommand("teleport " + steamID + " " + position.X+","+ position.Y+","+ position.Z);
+        }
+        public void Teleport(Player<TPlayer> player, Vector3 position)
+        {
+            Teleport(player.SteamID, position);
+        }
         public void WarnPlayer(ulong steamID, string msg)
         {
             ExecuteCommand("warn " + steamID + " " + msg);
