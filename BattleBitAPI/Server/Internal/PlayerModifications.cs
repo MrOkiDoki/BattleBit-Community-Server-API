@@ -1,4 +1,5 @@
 ﻿using BattleBitAPI.Common;
+using System.Runtime.ConstrainedExecution;
 
 namespace BattleBitAPI.Server
 {
@@ -314,6 +315,39 @@ namespace BattleBitAPI.Server
                 @internal._Modifications.IsDirtyFlag = true;
             }
         }
+        public bool Freeze
+        {
+            get => @internal._Modifications.Freeze;
+            set
+            {
+                if (@internal._Modifications.Freeze == value)
+                    return;
+                @internal._Modifications.Freeze = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
+        public float ReviveHP
+        {
+            get => @internal._Modifications.ReviveHP;
+            set
+            {
+                if (@internal._Modifications.ReviveHP == value)
+                    return;
+                @internal._Modifications.ReviveHP = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
+        public bool HideOnMap
+        {
+            get => @internal._Modifications.HideOnMap;
+            set
+            {
+                if (@internal._Modifications.HideOnMap == value)
+                    return;
+                @internal._Modifications.HideOnMap = value;
+                @internal._Modifications.IsDirtyFlag = true;
+            }
+        }
 
         public void DisableBleeding()
         {
@@ -356,6 +390,9 @@ namespace BattleBitAPI.Server
             public bool IsExposedOnMap = false;
             public SpawningRule SpawningRule;
             public VehicleType AllowedVehicles;
+            public bool Freeze = false;
+            public float ReviveHP = 35f;
+            public bool HideOnMap = false;
 
             public bool IsDirtyFlag = false;
             public void Write(BattleBitAPI.Common.Serialization.Stream ser)
@@ -388,6 +425,9 @@ namespace BattleBitAPI.Server
                 ser.Write(this.IsExposedOnMap);
                 ser.Write((ulong)this.SpawningRule);
                 ser.Write((byte)this.AllowedVehicles);
+                ser.Write(this.Freeze);
+                ser.Write(this.ReviveHP);
+                ser.Write(this.HideOnMap);
             }
             public void Read(BattleBitAPI.Common.Serialization.Stream ser)
             {
@@ -422,6 +462,10 @@ namespace BattleBitAPI.Server
                 this.IsExposedOnMap = ser.ReadBool();
                 this.SpawningRule = (SpawningRule)ser.ReadUInt64();
                 this.AllowedVehicles = (VehicleType)ser.ReadInt8();
+
+                this.Freeze = ser.ReadBool();
+                this.ReviveHP = ser.ReadFloat();
+                this.HideOnMap = ser.ReadBool();
             }
             public void Reset()
             {
@@ -451,6 +495,9 @@ namespace BattleBitAPI.Server
                 this.KillFeed = false;
                 this.SpawningRule = SpawningRule.All;
                 this.AllowedVehicles = VehicleType.All;
+                this.Freeze = false;
+                this.ReviveHP = 35f;
+                this.HideOnMap = false;
             }
         }
     }

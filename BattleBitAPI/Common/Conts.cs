@@ -2,7 +2,7 @@
 {
     public static class Const
     {
-        public static string Version = "1.0.5v";
+        public static string Version = "1.0.6v";
 
         // ---- Networking ---- 
         /// <summary>
@@ -11,7 +11,7 @@
         public const int MaxNetworkPackageSize = 1024 * 1024 * 4;//4mb
         /// <summary>
         /// How long should server/client wait until connection is determined as timed out when no packages is being sent for long time.
-        /// </summary>
+        /// </summary> 
         public const int NetworkTimeout = 60 * 1000;//60 seconds
         /// <summary>
         /// How frequently client/server will send keep alive to each other when no message is being sent to each other for a while.
