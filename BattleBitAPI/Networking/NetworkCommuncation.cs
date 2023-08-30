@@ -16,6 +16,9 @@
         SetPlayerWeapon = 16,
         SetPlayerGadget = 17,
         SetPlayerModifications = 18,
+        EndgameWithPlayers = 19,
+        PlaceVoxelBlock = 20,
+        RemoveVoxelBlock = 21,
 
         PlayerConnected = 50,
         PlayerDisconnected = 51,

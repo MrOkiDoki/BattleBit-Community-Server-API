@@ -202,6 +202,17 @@ namespace BattleBitAPI.Server
                 mResources.IsDirtyRoomSettings = true;
             }
         }
+        public bool TeamlessMode
+        {
+            get => mResources._RoomSettings.TeamlessMode;
+            set
+            {
+                if (mResources._RoomSettings.TeamlessMode == value)
+                    return;
+                mResources._RoomSettings.TeamlessMode = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
 
         // ---- Reset ---- 
         public void Reset()
@@ -233,6 +244,7 @@ namespace BattleBitAPI.Server
             public float HelicopterSpawnDelayMultipler = 1.0f;
 
             public bool UnlockAllAttachments = false;
+            public bool TeamlessMode = false;
 
             public void Write(Common.Serialization.Stream ser)
             {
@@ -257,6 +269,7 @@ namespace BattleBitAPI.Server
                 ser.Write(this.HelicopterSpawnDelayMultipler);
 
                 ser.Write(this.UnlockAllAttachments);
+                ser.Write(this.TeamlessMode);
             }
             public void Read(Common.Serialization.Stream ser)
             {
@@ -281,6 +294,8 @@ namespace BattleBitAPI.Server
                 this.HelicopterSpawnDelayMultipler = ser.ReadFloat();
 
                 this.UnlockAllAttachments = ser.ReadBool();
+                this.TeamlessMode = ser.ReadBool();
+
             }
             public void Reset()
             {
@@ -305,6 +320,7 @@ namespace BattleBitAPI.Server
                 this.HelicopterSpawnDelayMultipler = 1.0f;
 
                 this.UnlockAllAttachments = false;
+                this.TeamlessMode = false;
             }
         }
     }

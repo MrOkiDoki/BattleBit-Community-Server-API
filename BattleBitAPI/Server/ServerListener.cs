@@ -882,7 +882,6 @@ namespace BattleBitAPI.Server
                         }
                         break;
                     }
-
                 case NetworkCommuncation.PlayerConnected:
                     {
                         if (stream.CanRead(8 + 2 + 4 + (1 + 1 + 1)))
