@@ -213,6 +213,17 @@ namespace BattleBitAPI.Server
                 mResources.IsDirtyRoomSettings = true;
             }
         }
+        public bool SquadRequiredToChangeRole
+        {
+            get => mResources._RoomSettings.SquadRequiredToChangeRole;
+            set
+            {
+                if (mResources._RoomSettings.SquadRequiredToChangeRole == value)
+                    return;
+                mResources._RoomSettings.SquadRequiredToChangeRole = value;
+                mResources.IsDirtyRoomSettings = true;
+            }
+        }
 
         // ---- Reset ---- 
         public void Reset()
@@ -245,6 +256,7 @@ namespace BattleBitAPI.Server
 
             public bool UnlockAllAttachments = false;
             public bool TeamlessMode = false;
+            public bool SquadRequiredToChangeRole = true;
 
             public void Write(Common.Serialization.Stream ser)
             {
@@ -270,6 +282,7 @@ namespace BattleBitAPI.Server
 
                 ser.Write(this.UnlockAllAttachments);
                 ser.Write(this.TeamlessMode);
+                ser.Write(this.SquadRequiredToChangeRole);
             }
             public void Read(Common.Serialization.Stream ser)
             {
@@ -295,7 +308,7 @@ namespace BattleBitAPI.Server
 
                 this.UnlockAllAttachments = ser.ReadBool();
                 this.TeamlessMode = ser.ReadBool();
-
+                this.SquadRequiredToChangeRole = ser.ReadBool();
             }
             public void Reset()
             {
@@ -321,6 +334,7 @@ namespace BattleBitAPI.Server
 
                 this.UnlockAllAttachments = false;
                 this.TeamlessMode = false;
+                this.SquadRequiredToChangeRole = true;
             }
         }
     }
