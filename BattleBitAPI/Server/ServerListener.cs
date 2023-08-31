@@ -961,11 +961,11 @@ namespace BattleBitAPI.Server
                                     server.OnPlayerLeftSquad((TPlayer)player, msquad);
                                 }
 
-                                @internal.SessionID = 0;
-                                @internal.GameServer = null;
-
                                 player.OnDisconnected();
                                 server.OnPlayerDisconnected((TPlayer)player);
+
+                                @internal.SessionID = 0;
+                                @internal.GameServer = null;
 
                                 if (this.LogLevel.HasFlag(LogLevel.Players))
                                     OnLog(LogLevel.Players, $"{player} has disconnected", player);
