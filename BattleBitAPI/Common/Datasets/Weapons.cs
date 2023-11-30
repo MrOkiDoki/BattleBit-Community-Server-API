@@ -53,6 +53,8 @@ namespace BattleBitAPI.Common
         public readonly static Weapon MG36 = new Weapon("MG36", WeaponType.LightSupportGun_LSG);
         public readonly static Weapon AK5C = new Weapon("AK5C", WeaponType.Rifle);
         public readonly static Weapon Ultimax100 = new Weapon("Ultimax100", WeaponType.LightMachineGun_LMG);
+        public readonly static Weapon G3 = new Weapon("G3", WeaponType.DMR);
+        public readonly static Weapon F2000 = new Weapon("F2000", WeaponType.Rifle);
 
         // ----- Public Calls ----- 
         public static bool TryFind(string name, out Weapon item)

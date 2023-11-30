@@ -60,6 +60,7 @@ namespace BattleBitAPI.Common
         public static readonly Attachment Pistol8xScope = new Attachment("Pistol_8x_Scope", AttachmentType.MainSight);
         public static readonly Attachment BurrisAR332 = new Attachment("BurrisAR332", AttachmentType.MainSight);
         public static readonly Attachment HS401G5 = new Attachment("HS401G5", AttachmentType.MainSight);
+        public static readonly Attachment F2000_Sight = new Attachment("F2000_Sight", AttachmentType.MainSight);
 
         // ----- Top Scope ----- 
         public static readonly Attachment DeltaSightTop = new Attachment("Delta_Sight_Top", AttachmentType.TopSight);
