@@ -380,7 +380,7 @@ namespace BattleBitAPI.Server
             public bool CanSuicide = true;
             public float MinDamageToStartBleeding = 10f;
             public float MinHpToStartBleeding = 40f;
-            public float HPperBandage = 40f;
+            public float HPperBandage = 50f;
             public bool StaminaEnabled = false;
             public bool HitMarkersEnabled = true;
             public bool FriendlyHUDEnabled = true;
@@ -482,11 +482,11 @@ namespace BattleBitAPI.Server
                 this.CanSpectate = true;
                 this.IsTextChatMuted = false;
                 this.IsVoiceChatMuted = false;
-                this.RespawnTime = 10f;
+                this.RespawnTime = 5f;
                 this.CanSuicide = true;
                 this.MinDamageToStartBleeding = 10f;
                 this.MinHpToStartBleeding = 40f;
-                this.HPperBandage = 40f;
+                this.HPperBandage = 50f;
                 this.StaminaEnabled = false;
                 this.HitMarkersEnabled = true;
                 this.FriendlyHUDEnabled = true;
