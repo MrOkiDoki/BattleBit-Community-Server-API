@@ -131,14 +131,27 @@
     {
         public string ToolName;
         public string MainSightName;
+        public byte MainSightIndex;
         public string TopSightName;
+        public byte TopSightIndex;
         public string CantedSightName;
+        public byte MainCantedIndex;
         public string BarrelName;
+        public byte MainBarrelIndex;
         public string SideRailName;
+        public byte MainSideRailIndex;
         public string UnderRailName;
+        public byte MainUnderRailIndex;
         public string BoltActionName;
-        public byte SkinIndex;
+        public byte MainBoltActionIndex;
         public byte MagazineIndex;
+        public byte MeshIndex;
+        public byte UVIndex;
+        public ushort CamoIndex;
+        public byte AttachmentsUVIndex;
+        public ushort AttachmentsCamoIndex;
+        public ushort CharmIndex;
+        public ushort BulletType;
 
         public Weapon Tool
         {
@@ -321,28 +334,71 @@
         public void Write(Common.Serialization.Stream ser)
         {
             ser.WriteStringItem(this.ToolName);
+
             ser.WriteStringItem(this.MainSightName);
+            ser.Write(this.MainSightIndex);
+
             ser.WriteStringItem(this.TopSightName);
+            ser.Write(this.TopSightIndex);
+
             ser.WriteStringItem(this.CantedSightName);
+            ser.Write(this.MainCantedIndex);
+
             ser.WriteStringItem(this.BarrelName);
+            ser.Write(MainBarrelIndex);
+
             ser.WriteStringItem(this.SideRailName);
+            ser.Write(MainSideRailIndex);
+
             ser.WriteStringItem(this.UnderRailName);
+            ser.Write(MainUnderRailIndex);
+
             ser.WriteStringItem(this.BoltActionName);
-            ser.Write(this.SkinIndex);
-            ser.Write(this.MagazineIndex);
+            ser.Write(MainBoltActionIndex);
+
+            ser.Write(MagazineIndex);
+            ser.Write(MeshIndex);
+
+            ser.Write(UVIndex);
+            ser.Write(CamoIndex);
+            ser.Write(AttachmentsUVIndex);
+            ser.Write(AttachmentsCamoIndex);
+            ser.Write(CharmIndex);
+            ser.Write(BulletType);
         }
         public void Read(Common.Serialization.Stream ser)
         {
             ser.TryReadString(out this.ToolName);
+
             ser.TryReadString(out this.MainSightName);
+            MainSightIndex = ser.ReadInt8();
+
             ser.TryReadString(out this.TopSightName);
+            TopSightIndex = ser.ReadInt8();
+
             ser.TryReadString(out this.CantedSightName);
+            MainCantedIndex = ser.ReadInt8();
+
             ser.TryReadString(out this.BarrelName);
+            MainBarrelIndex = ser.ReadInt8();
+
             ser.TryReadString(out this.SideRailName);
+            MainSideRailIndex = ser.ReadInt8();
+
             ser.TryReadString(out this.UnderRailName);
+            MainUnderRailIndex = ser.ReadInt8();
+
             ser.TryReadString(out this.BoltActionName);
-            this.SkinIndex = ser.ReadInt8();
-            this.MagazineIndex = ser.ReadInt8();
+            MainBoltActionIndex = ser.ReadInt8();
+
+            MagazineIndex = ser.ReadInt8();
+            MeshIndex = ser.ReadInt8();
+            UVIndex = ser.ReadInt8();
+            CamoIndex = ser.ReadUInt16();
+            AttachmentsUVIndex = ser.ReadInt8();
+            AttachmentsCamoIndex = ser.ReadUInt16();
+            CharmIndex = ser.ReadUInt16();
+            BulletType = ser.ReadUInt16();
         }
     }
 }
