@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Language [English](/README.md) | [中文](/README-zhCN.md) | [한국어](/README-koKR.md) | [Español](/README-esES.md) | Português
+Language [English](/README.md) | [Русский](/README-ruRU.md) | [中文](/README-zhCN.md) | [한국어](/README-koKR.md) | [Español](/README-esES.md) | Português
 
 Este repositório proporciona uma API que pode ser usada para manipular eventos em seu(s) servidor(es) da comunidade.
 
