@@ -2,7 +2,7 @@
 
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Language [English](/README.md) | [中文](/README-zhCN.md) | 한국어 | [Español](/README-esES.md)
+Language [English](/README.md) | [中文](/README-zhCN.md) | 한국어 | [Español](/README-esES.md) | [Português](/README-ptBR.md) 
  
 이 레포지토리는 BattleBit Remastered 커뮤니티 서버에서 이벤트를 처리하고 조작하는 데 사용할 수 있는 API를 제공합니다.
 
