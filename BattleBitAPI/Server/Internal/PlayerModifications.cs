@@ -482,7 +482,7 @@ namespace BattleBitAPI.Server
                 this.CanSpectate = true;
                 this.IsTextChatMuted = false;
                 this.IsVoiceChatMuted = false;
-                this.RespawnTime = 5f;
+                this.RespawnTime = 10f;
                 this.CanSuicide = true;
                 this.MinDamageToStartBleeding = 10f;
                 this.MinHpToStartBleeding = 40f;
