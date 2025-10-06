@@ -47,6 +47,7 @@ namespace BattleBitAPI.Common
         public static readonly Gadget SledgeHammerSkinB = new Gadget("Sledge Hammer SkinB");
         public static readonly Gadget SledgeHammerSkinC = new Gadget("Sledge Hammer SkinC");
         public static readonly Gadget PickaxeIronPickaxe = new Gadget("Pickaxe IronPickaxe");
+        public static readonly Gadget AntiGrenadeTrophy = new Gadget("Anti Grenade Trophy");
 
         // ----- Public Calls ----- 
         public static bool TryFind(string name, out Gadget item)
