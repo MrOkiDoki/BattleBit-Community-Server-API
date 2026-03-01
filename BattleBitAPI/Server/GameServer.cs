@@ -669,6 +669,14 @@ namespace BattleBitAPI.Server
         {
             Kick(player.SteamID, reason);
         }
+        public void Ban(ulong steamID)
+        {
+            ExecuteCommand("ban " + steamID);
+        }
+        public void Ban(Player<TPlayer> player)
+        {
+            Ban(player.SteamID);
+        }
         public void Kill(ulong steamID)
         {
             ExecuteCommand("kill " + steamID);

@@ -186,6 +186,10 @@ namespace BattleBitAPI
             if (IsConnected)
                 GameServer.Kick(this, reason);
         }
+        public void Ban()
+        {
+            GameServer.Ban(this);
+        }
         public void Kill()
         {
             if (IsConnected)
